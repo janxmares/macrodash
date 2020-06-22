@@ -1,12 +1,12 @@
 ---
-title: "Macrodash"
+title: ""
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))}) 
-author: "Jan Mares"
-date: "6/22/2020"
+author: "Jan Mareš"
+# date: ""
 output: html_document
 ---
 
@@ -37,14 +37,19 @@ unemp <- get_eurostat('ei_lmhr_m')
 unemp_cz <- as.data.table(unemp)
 unemp_cz <- unemp_cz[geo == "CZ" & year(time) >= (as.numeric(year_sel)-1) &  s_adj == "SA" & indic == "LM-UN-T-TOT", ]
 
-fig_u <- ggplot(unemp_cz, aes(x = time, y = values)) + xlab('') + ylab('') +
+fig_u <- ggplot(unemp_cz, aes(x = time, y = values, colour = factor(1))) + xlab('') + ylab('') +
                scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
                expand = expansion(c(0.01, 0.01)), limits = c(min(unemp_cz$time), as.Date('2020-12-01'))) +         
                scale_y_continuous(limits = c(1.5,5)) +
                scale_colour_fira(name = element_text("")) + theme_fira() + 
-               theme(legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), 
+               theme(legend.position = "none", legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), 
                plot.subtitle = element_text(hjust=0)) + 
                labs(title='Unemployment', subtitle='Harmonized rate of unemployment (Eurostat)')
+#
+# Podíl nezaměstnaných osob (MPSV - úřady práce)
+# https://www.mpsv.cz/o/rest/statistiky/nezamestnanost/2020/05
+
+
 ```
 
 ## Macroeconomics dashboard - Czech Republic
