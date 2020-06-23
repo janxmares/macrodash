@@ -31,6 +31,7 @@ library(gridExtra)
 date <- Sys.Date()
 year_sel <- format(date, "%Y")
 
+
 ##########################################################
 # unemployment
 unemp <- get_eurostat('ei_lmhr_m')
@@ -56,14 +57,10 @@ urate_mpsv_long <- data.table(melt(urate_mpsv, id = c('time','id')))
 
 #
 #
-
 # merge the unemployment together
-
 unemp_final <- rbind(unemp_cz, urate_mpsv_long)
 
-#
 # unemployment rates
-
 fig_urate <- ggplot(unemp_final[variable == 'urate',], aes(x = time, y = value, colour = id, group = id)) +
                xlab('') + ylab('') +
                scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
@@ -74,12 +71,12 @@ fig_urate <- ggplot(unemp_final[variable == 'urate',], aes(x = time, y = value, 
                legend.box.margin=margin(-10,-10,-10,-10),
                plot.margin = margin(0,5,10,-10),
                plot.title = element_text(hjust = 0), 
-               plot.subtitle = element_text(hjust=0)) + 
-               labs(title='Unemployment rate (%)')
+               plot.subtitle = element_text(hjust=0),
+               plot.caption = element_text(hjust=0, margin = margin(15,0,-8,0))) + 
+               labs(title='Unemployment rate (%)', 
+                    caption = paste0('https://ec.europa.eu/eurostat/web/products-datasets/product?code=ei_lmhr_m\nhttps://www.mpsv.cz/web/cz/mesicni\n','last checked: ', format(date, '%d-%m-%Y')))
 
-#
 # vacancies and unemployed
-
 fig_unem <- ggplot(unemp_final[variable %in% c('Vacancies','Unemployed'),], aes(x = time, y = value, 
                                                                                 colour = variable, 
                                                                                 group = variable)) +
@@ -91,14 +88,67 @@ fig_unem <- ggplot(unemp_final[variable %in% c('Vacancies','Unemployed'),], aes(
                plot.title =  element_text(hjust = 0), legend.margin=margin(0,0,0,0),
                legend.box.margin=margin(-10,-10,-10,-10),
                plot.margin = margin(0,5,10,-5),
-               plot.subtitle = element_text(hjust=0)) + 
-               labs(title='Unemployment and vacancies')
+               plot.subtitle = element_text(hjust=0), 
+               plot.caption = element_text(hjust=0, margin = margin(15,0,-8,0))) + 
+               labs(title = 'Unemployment and vacancies', caption = paste0('https://www.mpsv.cz/web/cz/mesicni\n','last checked: ', format(date, '%d-%m-%Y')))
 
+#
+#
+#
+#
+#
+##########################################################
+# sales in services
+
+services <- data.table(czso_get_table('030030'))
+# services_sch <- czso_get_table_schema("030030")
+
+# list of nace categories
+# cznace <- services[, .(cznace_kod, cznace_txt)]
+# cznace <- cznace[!duplicated(cznace_kod),]
+# cznace # check
+
+# filter the values
+# seasonally adjusted, current prices, same period prevous year comparison, all services
+# selection of categories: services overall and then subcategories
+#
+categ <- c("49820001",'45470001','55','56','J','H','68','N','69740001')
+categ_txt <- c('Services (NACE I,J,H,L,M,N)','Retail','Accommodation','Food and beverage','Information and communication',
+               'Transportation','Real estate','Administrative','Professional, technical, and research')
+categ_concat <- data.table(categ, categ_txt)
+
+serv_current <- services[rok >= as.numeric(year_sel) & ocisteni_kod == 'O' & is.na(oceneni_kod) &
+                      cznace_kod %in% categ_concat$categ & casz_kod == 'C',]
+
+#                
+#
+
+# only keep required columns
+serv_current <- serv_current[, .(hodnota, mesic, rok, categ = cznace_kod)]
+
+# merge with text value of nace category
+serv_current <- serv_current[categ_concat, on = c('categ')]
+
+# reformat month number
+serv_current[, mesic := ifelse(nchar(mesic) == 1, paste0('0', mesic), mesic)]
+
+# create a date value
+serv_current[, time := as.Date(paste('01',mesic,rok, sep = '-'), '%d-%m-%Y')]
+
+# create split column for overall services and sub-categories
+serv_current[categ_txt == 'Services (NACE I,J,H,L,M,N)', plot := 'Services']
+serv_current[is.na(plot), plot := 'Subcategories']
+
+#
+#
+
+# plot
+fig_sales_serv <- ggplot(serv_current, aes(x = time, y= hodnota, group = categ_txt, colour = categ_txt))
 ```
 
-# Macroeconomics dashboard - Czech Republic
+# Macroeconomic dashboard - Czech Republic
 
-This dashboard aims to provide basic macroeconomics data for the Czech Republic. The idea is to gather an up-to-date value from different sources and provide simple overview. The initial idea comes from the lack of unified information source about the economic development during the pandemic situation. See also [czechtrack](https://petrbouchal.github.io/czechtrack/) which provides fiscal data and served as inspiration to the current project.
+This dashboard aims to provide basic macroeconomic data for the Czech Republic. The idea is to gather an up-to-date values from different sources and provide an intuitive overview. The initial idea comes from the lack of unified information source about the economic development during the pandemic situation. See also [czechtrack](https://petrbouchal.github.io/czechtrack/) which provides fiscal data and served as inspiration to the current project.
 
 ## Labour market
 #
@@ -109,11 +159,21 @@ plot2 <- fig_unem + geom_line() + geom_point()
 grid.arrange(plot1, plot2, ncol=2)
 ```
 
+## Sales in services
+#
+
+```{r, echo = FALSE, fig.width=11, fig.height=4, fig.fullwidth=TRUE}
+fig_sales_serv + geom_line() + geom_point() + xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(serv_current$time), as.Date('2020-12-01'))) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(plot.margin = margin(0,5,10,-5), legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0),
+                                                                                 plot.caption = element_text(hjust=0)) +
+               facet_wrap(~plot) + labs(title='Monthly index, base = same period previous year', caption = paste0('https://vdb.czso.cz/vdbvo2/faces/index.jsf?page=vystup-objekt-parametry&pvo=SLU03-A&sp=A&skupId=1877&pvokc=&katalog=32025&z=T\n','last checked: ', format(date, '%d-%m-%Y')))
+```
+
 ## Prices
 
 ## Loans
-
-## Sales in services
 
 ## Manufacturing production
 
