@@ -10,7 +10,7 @@ author: "Jan Mareš"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -24,6 +24,7 @@ library(ggplot2)
 library(eurostat)
 library(readr)
 library(firatheme)
+library(gridExtra)
 
 ##########################################################
 # span of data, get the current year
@@ -37,25 +38,89 @@ unemp <- get_eurostat('ei_lmhr_m')
 unemp_cz <- as.data.table(unemp)
 unemp_cz <- unemp_cz[geo == "CZ" & year(time) >= (as.numeric(year_sel)-1) &  s_adj == "SA" & indic == "LM-UN-T-TOT", ]
 
-fig_u <- ggplot(unemp_cz, aes(x = time, y = values, colour = factor(1))) + xlab('') + ylab('') +
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.01, 0.01)), limits = c(min(unemp_cz$time), as.Date('2020-12-01'))) +         
-               scale_y_continuous(limits = c(1.5,5)) +
-               scale_colour_fira(name = element_text("")) + theme_fira() + 
-               theme(legend.position = "none", legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), 
-               plot.subtitle = element_text(hjust=0)) + 
-               labs(title='Unemployment', subtitle='Harmonized rate of unemployment (Eurostat)')
+# select required  columns
+unemp_cz <- unemp_cz[, .(time, value = values, id = 'Eurostat', variable = 'urate')]
+
 #
 # Podíl nezaměstnaných osob (MPSV - úřady práce)
 # https://www.mpsv.cz/o/rest/statistiky/nezamestnanost/2020/05
 
+# read the basic data
+urate_mpsv <- data.table(read_csv('urate_mpsv.csv'))
+# reformat the date
+urate_mpsv[, time := as.Date(time, '%d-%m-%y')]
+urate_mpsv[, id := 'MPSV'] # identification for graphs
+
+# melt the data to long format
+urate_mpsv_long <- data.table(melt(urate_mpsv, id = c('time','id')))
+
+#
+#
+
+# merge the unemployment together
+
+unemp_final <- rbind(unemp_cz, urate_mpsv_long)
+
+#
+# unemployment rates
+
+fig_urate <- ggplot(unemp_final[variable == 'urate',], aes(x = time, y = value, colour = id, group = id)) +
+               xlab('') + ylab('') +
+               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
+               expand = expansion(c(0.01, 0.01)), limits = c(min(unemp_cz$time), as.Date('2020-12-01'))) +                       scale_y_continuous(limits = c(1.5,max(urate_mpsv$urate)+1)) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + 
+               theme(legend.position = "bottom", legend.title = element_text(face='bold'),
+               legend.margin=margin(0,0,0,0),
+               legend.box.margin=margin(-10,-10,-10,-10),
+               plot.margin = margin(0,5,10,-10),
+               plot.title = element_text(hjust = 0), 
+               plot.subtitle = element_text(hjust=0)) + 
+               labs(title='Unemployment rate (%)')
+
+#
+# vacancies and unemployed
+
+fig_unem <- ggplot(unemp_final[variable %in% c('Vacancies','Unemployed'),], aes(x = time, y = value, 
+                                                                                colour = variable, 
+                                                                                group = variable)) +
+               xlab('') + ylab('') +
+               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
+               expand = expansion(c(0.01, 0.01)), limits = c(min(unemp_cz$time), as.Date('2020-12-01'))) +                       # scale_y_continuous(limits = c(200000,max(urate_mpsv_long$value)+1)) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + 
+               theme(legend.position = "bottom", legend.title = element_text(face='bold'), 
+               plot.title =  element_text(hjust = 0), legend.margin=margin(0,0,0,0),
+               legend.box.margin=margin(-10,-10,-10,-10),
+               plot.margin = margin(0,5,10,-5),
+               plot.subtitle = element_text(hjust=0)) + 
+               labs(title='Unemployment and vacancies')
 
 ```
 
-## Macroeconomics dashboard - Czech Republic
+# Macroeconomics dashboard - Czech Republic
 
-This dashboard aims to provide basic macroeconomics data for the Czech Republic. The idea is to gather an up-to-date value from different sources and provide simple overview. The initial idea comes from the lack of unified information source about the economic development during the pandemic crises. Czech also [czechtrack](https://petrbouchal.github.io/czechtrack/) which provides fiscal data and served as inspiration to the current project.
+This dashboard aims to provide basic macroeconomics data for the Czech Republic. The idea is to gather an up-to-date value from different sources and provide simple overview. The initial idea comes from the lack of unified information source about the economic development during the pandemic situation. See also [czechtrack](https://petrbouchal.github.io/czechtrack/) which provides fiscal data and served as inspiration to the current project.
 
-```{r pokus, echo=FALSE}
-fig_u + geom_line() + geom_point()
+## Labour market
+#
+
+```{r, echo = FALSE, fig.width=11, fig.height=4, fig.fullwidth=TRUE}
+plot1 <- fig_urate + geom_line() + geom_point()
+plot2 <- fig_unem + geom_line() + geom_point()
+grid.arrange(plot1, plot2, ncol=2)
 ```
+
+## Prices
+
+## Loans
+
+## Sales in services
+
+## Manufacturing production
+
+## Construction
+
+## Energy consumption
+
+## PX index
+
+## Some other useful indicators?

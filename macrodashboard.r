@@ -48,15 +48,27 @@ catalogue <- czso_get_catalogue()
 #czso_get_codelist(100)
 # get documentation to a specific dataset
 czso_get_dataset_doc("030030", action = "download", format = "pdf")
-
-
+czso_get_dataset_doc('130141r19', action = 'download', format = 'pdf')
+head(catalogue)
 # Search query
 cat <- catalogue %>% 
-  filter(str_detect(title, "obyv")) %>% 
+  filter(str_detect(dataset_id, "ZAM11")) %>% 
   select(dataset_id, title, description)
 cat$title
+cat
+data <- czso_get_table('250169')
+head(data)
+unique(data$vuk_text)
+
 
 # Podíl nezaměstnaných osob (MPSV - úřady práce)
+# read the basic data
+urate_mpsv <- data.table(read_csv('urate_mpsv.csv'))
+# reformat the date
+urate_mpsv[, time := as.Date(time, '%d-%m-%y')]
+urate_mpsv[, id := 'mpsv'] # identification for graphs
+
+
 # https://www.mpsv.cz/o/rest/statistiky/nezamestnanost/2020/05
 link <- 'https://www.mpsv.cz/o/rest/statistiky/nezamestnanost/2020/05'
 
