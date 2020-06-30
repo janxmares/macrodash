@@ -222,15 +222,10 @@
     },
     "czso": {
       "Package": "czso",
-      "Version": "0.2.3.9000",
-      "Source": "GitHub",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "petrbouchal",
-      "RemoteRepo": "czso",
-      "RemoteRef": "master",
-      "RemoteSha": "2bf6e361db93413b6e5b2c6838fd85b26ef3985b",
-      "Hash": "f739169db72cc8dbe782e76e0419b2c7"
+      "Version": "0.2.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "ae343eb8ce65f9ef976e4eed09c28c91"
     },
     "data.table": {
       "Package": "data.table",
