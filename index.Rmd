@@ -3,7 +3,7 @@ title: "Macroeconomic dashboard"
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, fig.showtext=TRUE)
 ```
 
 ```{r back, echo = FALSE, include = FALSE}
