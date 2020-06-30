@@ -16,6 +16,14 @@ library(ggplot2)
 library(eurostat)
 library(readr)
 library(readxl)
+```
+
+```{r fonts}
+source("fonts.r")
+```
+
+
+```{r back-2, echo = FALSE, include = FALSE}
 library(firatheme)
 library(gridExtra)
 library(rsdmx)
