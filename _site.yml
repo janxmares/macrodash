@@ -1,0 +1,17 @@
+name: macrodash
+output_dir: docs
+include: ["demo.R"]
+exclude: ["LICENSE.md", "*.csv", "*.rds", "*.xml"]
+navbar:
+  title: "Czech macroeconomic data"
+  right:
+  - icon: fa-github fa-lg
+    href: https://github.com/janxmares/macrodash
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    mathjax: null
+    df_print: paged
+    code_download: T
