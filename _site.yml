@@ -9,9 +9,7 @@ navbar:
     href: https://github.com/janxmares/macrodash
 output:
   html_document:
-    toc: true
+    toc: false
     toc_float: true
-    code_folding: hide
     mathjax: null
     df_print: paged
-    code_download: T
