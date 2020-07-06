@@ -1,17 +1,10 @@
 ---
 title: "Macroeconomic dashboard"
-knit: (function(input_file, encoding) {
-  out_dir <- 'docs';
-  rmarkdown::render(input_file,
- encoding=encoding,
- output_file=file.path(dirname(input_file), out_dir, 'index.html'))}) 
-#author: "Jan Mareš"
-# date: ""
-output: html_document
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, fig.showtext=TRUE, warning = FALSE,
+                      message = FALSE)
 ```
 
 ```{r back, echo = FALSE, include = FALSE}
@@ -24,6 +17,14 @@ library(ggplot2)
 library(eurostat)
 library(readr)
 library(readxl)
+```
+
+```{r fonts}
+source("fonts.r")
+```
+
+
+```{r back-2, echo = FALSE, include = FALSE}
 library(firatheme)
 library(gridExtra)
 library(rsdmx)
