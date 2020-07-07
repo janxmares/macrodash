@@ -63,7 +63,6 @@ fig_u + geom_line() + geom_point() + xlab('') + ylab('') + scale_x_date(labels =
 query <- search_eurostat('sales', type='dataset')
 query <- search_eurostat('industry', type='dataset')
 query <- search_eurostat('services', type='dataset')
-query
 
 #
 #
@@ -72,36 +71,52 @@ catalogue <- czso_get_catalogue()
 # get documentation to a specific dataset
 czso_get_dataset_doc("030030", action = "download", format = "pdf")
 czso_get_dataset_doc('130141r19', action = 'download', format = 'pdf')
-head(catalogue)
 
 # Search query
 cat <- catalogue %>% 
   filter(str_detect(title, "Index")) %>% 
   select(dataset_id, title, description)
 
-cat$title
-
 data <- czso_get_table('250169')
-head(data)
-unique(data$vuk_text)
 
-
+#
+#
 # Podíl nezaměstnaných osob (MPSV - úřady práce)
-# read the basic data
-urate_mpsv <- data.table(read_csv('urate_mpsv.csv'))
-# reformat the date
-urate_mpsv[, time := as.Date(time, '%d-%m-%y')]
-urate_mpsv[, id := 'mpsv'] # identification for graphs
+# 
+# primárně: 'https://www.mpsv.cz/documents/20142/1384563/stat-yyyy-mm.zip
+# alternativně: 'https://www.mpsv.cz/o/rest/statistiky/nezamestnanost/yyyy/mm'
+# 
 
+# create the link base on current date
+last_month <- paste0('0',month(date)-1)
+mpsv_data_link <- paste0('https://www.mpsv.cz/documents/20142/1384563/stat-',year_sel,'-',last_month,'.zip')
+mpsv_file_name <- paste0('4. Nez',last_month, substr(year_sel,3,4),'h.xlsx')
 
-# https://www.mpsv.cz/o/rest/statistiky/nezamestnanost/2020/05
-link <- 'https://www.mpsv.cz/o/rest/statistiky/nezamestnanost/2020/05'
+# try downloading data, if available and contains new value, then update the mpsv_data.csv
+tryCatch({download.file(mpsv_data_link, here('mpsv_data.zip'), mode='wb')
+          unzip('mpsv_data.zip', files = paste0('4. Nez',last_month, substr(year_sel,3,4),'h.xlsx'), exdir=here())
+          u_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="AD101:AD101", col_names = F)
+          vacancies_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="X101:X101", col_names = F)
+          unemployed_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="J101:J101", col_names = F)
+               
+          # if available and contains new value, then add it to the data                  
+          mpsv_data_current <- data.table(read_csv('mpsv_data.csv'))
+          # reformat the date
+          mpsv_data_current[, time := as.Date(time, '%d-%m-%y')]
+          mpsv_data_current[, id := 'MPSV'] # identification for graphs
 
-download.file(link, here('stat-2020-05.zip'), mode='wb')
-unzip('stat-2020-05.zip', files = '4. Nez0520h.xlsx', exdir=here())
+          unem_mpsv <- data.table(time = as.Date(paste0('01-',last_month,'-',year_sel), '%d-%m-%y'), u_mpsv, vacancies_mpsv, unemployed_mpsv, id = 'MPSV')
+          setnames(unem_mpsv, c('time','urate','Vacancies','Unemployed','id'))
 
-data <- read_excel('4. Nez0520h.xlsx', sheet = 'nuts3', range="AD101:AD101", col_names = F)
-data
+          ifelse(unem_mpsv$time > max(mpsv_data_current$time), assign('mpsv_data', rbind(urate_mpsv, unem_mpsv)), assign('mpsv_data', urate_mpsv))
+          write.csv(mpsv_data, 'mpsv_data.csv', row.names = F)
+          },
+          error = function(err){
+          print('The data for last month is not yet available')
+          },
+          warning = function(war){
+          print('The data for last month is not yet available')
+          })
 
 #
 #
@@ -340,8 +355,8 @@ body = '<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     <Load xmlns="https://www.ceps.cz/CepsData/Load">
-      <dateFrom>DateTime(2019, 10, 16)</dateFrom>
-      <dateTo>DateTime(2020, 10, 16)</dateTo>
+      <dateFrom> ??? </dateFrom>
+      <dateTo> ??? </dateTo>
       <agregation>"DY"</agregation>
       <function>"AVG"</function>
       <version>"RT"</version>

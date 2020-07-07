@@ -74,28 +74,61 @@ unemp_cz <- unemp_cz[geo == "CZ" & year(time) >= (as.numeric(year_sel)-1) &  s_a
 unemp_cz <- unemp_cz[, .(time, value = values, id = 'Eurostat', variable = 'urate')]
 
 #
+#
 # Podíl nezaměstnaných osob (MPSV - úřady práce)
-# https://www.mpsv.cz/o/rest/statistiky/nezamestnanost/2020/05
+# 
+# primarily: 'https://www.mpsv.cz/documents/20142/1384563/stat-yyyy-mm.zip
+# alternatively: 'https://www.mpsv.cz/o/rest/statistiky/nezamestnanost/yyyy/mm'
+# 
+
+# create the link base on current date
+last_month <- paste0('0',month(date)-1)
+mpsv_data_link <- paste0('https://www.mpsv.cz/documents/20142/1384563/stat-',year_sel,'-',last_month,'.zip')
+mpsv_file_name <- paste0('4. Nez',last_month, substr(year_sel,3,4),'h.xlsx')
+
+# try downloading data, if available and contains new value, then update the mpsv_data.csv
+tryCatch({download.file(mpsv_data_link, here('mpsv_data.zip'), mode='wb')
+          unzip('mpsv_data.zip', files = paste0('4. Nez',last_month, substr(year_sel,3,4),'h.xlsx'), exdir=here())
+          u_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="AD101:AD101", col_names = F)
+          vacancies_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="X101:X101", col_names = F)
+          unemployed_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="J101:J101", col_names = F)
+               
+          # if available and contains new value, then add it to the data                  
+          mpsv_data_current <- data.table(read_csv('mpsv_data.csv'))
+          # reformat the date
+          mpsv_data_current[, time := as.Date(time, '%d-%m-%y')]
+
+          unem_mpsv <- data.table(time = as.Date(paste0('01-',last_month,'-',year_sel), '%d-%m-%y'), u_mpsv, vacancies_mpsv, unemployed_mpsv, id = 'MPSV') # id for identification in figures
+          setnames(unem_mpsv, c('time','urate','Vacancies','Unemployed','id'))
+
+          ifelse(unem_mpsv$time > max(mpsv_data_current$time), assign('mpsv_data', rbind(mpsv_data_current, unem_mpsv)), assign('mpsv_data', mpsv_data_current))
+          write.csv(mpsv_data, 'mpsv_data.csv', row.names = F)
+          },
+          error = function(err){
+          print('The data for last month is not yet available')
+          },
+          warning = function(war){
+          print('The data for last month is not yet available')
+          })
 
 # read the basic data
-urate_mpsv <- data.table(read_csv('urate_mpsv.csv'))
+mpsv_data <- data.table(read_csv('mpsv_data.csv'))
 # reformat the date
-urate_mpsv[, time := as.Date(time, '%d-%m-%y')]
-urate_mpsv[, id := 'MPSV'] # identification for graphs
+mpsv_data[, time := as.Date(time, '%d-%m-%y')]
 
 # melt the data to long format
-urate_mpsv_long <- data.table(melt(urate_mpsv, id = c('time','id')))
+mpsv_data_long <- data.table(melt(mpsv_data, id = c('time','id')))
 
 #
 #
 # merge the unemployment together
-unemp_final <- rbind(unemp_cz, urate_mpsv_long)
+unemp_final <- rbind(unemp_cz, mpsv_data_long)
 
 # unemployment rates
 fig_urate <- ggplot(unemp_final[variable == 'urate',], aes(x = time, y = value, colour = id, group = id)) +
                xlab('') + ylab('') +
                scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.01, 0.01)), limits = c(min(unemp_cz$time), as.Date('2020-12-01'))) +                       scale_y_continuous(limits = c(1.5,max(urate_mpsv$urate)+1)) +
+               expand = expansion(c(0.01, 0.01)), limits = c(min(unemp_cz$time), as.Date('2020-12-01'))) +                       scale_y_continuous(limits = c(1.5,max(mpsv_data$urate)+1)) +
                scale_colour_fira(name = element_text("")) + theme_fira() + 
                theme(legend.position = "bottom", legend.title = element_text(face='bold'),
                legend.margin=margin(0,0,0,0),
@@ -412,4 +445,4 @@ grid.arrange(fig_infl, fig_infl_ppi, ncol=2)
 ## PX index
 #
 
-## Some other useful indicators?
+<!-- ## Some other useful indicators? -->
