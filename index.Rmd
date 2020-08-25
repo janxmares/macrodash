@@ -17,6 +17,7 @@ library(ggplot2)
 library(eurostat)
 library(readr)
 library(readxl)
+library(lubridate)
 ```
 
 ```{r fonts}
@@ -383,6 +384,63 @@ fig_infl_ppi <- ggplot(ppi_data, aes(x = time, y = value)) + geom_line() + geom_
                legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), 
                plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
                labs(title='PPI inflation', subtitle='Base = same period previous year', caption = paste0( 'https://vdb.czso.cz/pll/eweb/sdmx.getXML?d=PPI\n', 'last checked: ', format(date, '%d-%m-%Y')))
+
+#
+#
+#
+
+# Loans from CNB
+# adjust month
+mon <- ifelse(nchar(month(date)) == 1, paste0('0', month(date)), month(date))
+
+
+loans_nfi_link_cnb <- paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.VYSTUP?p_period=1&p_sort=2&p_des=50&p_sestuid=22023&p_uka=7%2C8%2C9&p_strid=AABBAE&p_od=',as.numeric(year(date))-1,'12','&p_do=',year(date),mon,'&p_lang=CS&p_format=2&p_decsep=.')
+loans_hh_link_cnb <- paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.VYSTUP?p_period=1&p_sort=2&p_des=50&p_sestuid=22023&p_uka=16%2C17%2C18&p_strid=AABBAE&p_od=',as.numeric(year(date))-1,'12','&p_do=',year(date),mon,'&p_lang=CS&p_format=2&p_decsep=.')
+
+
+loans_nfi_data <- data.table(read.table(loans_nfi_link_cnb, header = T, sep='|')) # read the data
+loans_hh_data <- data.table(read.table(loans_hh_link_cnb, header = T, sep='|')) # read the data
+
+setnames(loans_nfi_data, c('time','loans','npl','npl_share')) # adjust column names
+setnames(loans_hh_data, c('time','loans','npl','npl_share')) # adjust column names
+
+loans_nfi_data[, type := 'Non-financial institutions']
+loans_hh_data[, type := 'Households']
+
+
+loans_nfi_data[, time := as.Date(time, format = '%d.%m.%Y')] # adjust date
+loans_nfi_data[, time := as.Date(paste(year(time),month(time), '01' , sep='-'))] # adjust to beginning of the month for consistency
+loans_hh_data[, time := as.Date(time, format = '%d.%m.%Y')] # adjust date
+loans_hh_data[, time := as.Date(paste(year(time),month(time), '01' , sep='-'))] # adjust to beginning of the month for consistency
+
+# compute loan growth
+loans_nfi_data <- loans_nfi_data[order(time),]
+loans_nfi_data[, loan_growth := grate(loans, k=1)*100]
+
+loans_hh_data <- loans_hh_data[order(time),]
+loans_hh_data[, loan_growth := grate(loans, k=1)*100]
+
+# bind the data
+loans_data <- rbind(loans_hh_data, loans_nfi_data)
+
+# drop NAs
+loans_data <- loans_data[!is.na(loan_growth),]
+
+# plot loan growth data
+fig_loan_growth <- ggplot(loans_data, aes(x = time, y = loan_growth, group = type, colour = type)) + geom_line() + geom_point() +              xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_data$time), as.Date('2020-12-01'))) +
+               scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+               labs(title='Loan growth (%)', subtitle='Base = previous month', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=\n22023&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
+
+# plot npl data
+fig_npls <- ggplot(loans_data, aes(x = time, y = npl_share, group = type, colour = type)) + geom_line() + geom_point() +                       xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_data$time), as.Date('2020-12-01'))) +
+               scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+               labs(title='Non-performing loans', subtitle='% share of total loans', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=\n22023&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
 ```
 
 <!-- # Macroeconomic dashboard - Czech Republic -->
@@ -431,18 +489,17 @@ grid.arrange(plot1, plot2, ncol=2)
 
 \ 
 
-
 ```{r, echo = FALSE, fig.width=11, fig.height=4, fig.fullwidth=TRUE}
 grid.arrange(fig_infl, fig_infl_ppi, ncol=2)
 ```
 
-## Loans
-#
+```{r, echo = FALSE, fig.width=11, fig.height=5, fig.fullwidth=TRUE}
+grid.arrange(fig_loan_growth, fig_npls, ncol=2)
+```
 
-## Energy consumption
+<!-- ## Energy consumption 
 #
-
 ## PX index
-#
+# -->
 
 <!-- ## Some other useful indicators? -->

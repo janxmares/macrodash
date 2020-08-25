@@ -13,6 +13,7 @@ library(readxl)
 library(firatheme)
 library(extrafont)
 library(rsdmx)
+library(lubridate)
 
 # Load functions on start
   
@@ -286,6 +287,7 @@ core_link_cnb <- paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.VYSTUP?p_period=1
 core_infl_data <- data.table(read.table(core_link_cnb, header = T, sep='|')) # read the data
 
 setnames(core_infl_data, c('time','value')) # adjust column names
+
 # adjust date
 core_infl_data[, time := as.Date(time, format = '%d.%m.%Y')] # adjust date
 core_infl_data[, time := as.Date(paste(year(time),month(time), '01' , sep='-'))] # adjust to beginning of the month for consistency
@@ -326,6 +328,70 @@ fig_infl_ppi + geom_line() + geom_point() + xlab('') + ylab('') +
                scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
                scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0)) +
                labs(title='PPI inflation', subtitle='Base = same period previous year')
+
+#
+#
+#
+
+# Loans from CNB
+# adjust month
+mon <- ifelse(nchar(month(date)) == 1, paste0('0', month(date)), month(date))
+
+
+loans_nfi_link_cnb <- paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.VYSTUP?p_period=1&p_sort=2&p_des=50&p_sestuid=22023&p_uka=7%2C8%2C9&p_strid=AABBAE&p_od=',as.numeric(year(date))-1,'12','&p_do=',year(date),mon,'&p_lang=CS&p_format=2&p_decsep=.')
+loans_hh_link_cnb <- paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.VYSTUP?p_period=1&p_sort=2&p_des=50&p_sestuid=22023&p_uka=16%2C17%2C18&p_strid=AABBAE&p_od=',as.numeric(year(date))-1,'12','&p_do=',year(date),mon,'&p_lang=CS&p_format=2&p_decsep=.')
+loans_nfi_link_cnb
+
+loans_nfi_data <- data.table(read.table(loans_nfi_link_cnb, header = T, sep='|')) # read the data
+loans_hh_data <- data.table(read.table(loans_hh_link_cnb, header = T, sep='|')) # read the data
+
+setnames(loans_nfi_data, c('time','loans','npl','npl_share')) # adjust column names
+setnames(loans_hh_data, c('time','loans','npl','npl_share')) # adjust column names
+
+loans_nfi_data[, type := 'Non-financial institutions']
+loans_hh_data[, type := 'Households']
+
+
+loans_nfi_data[, time := as.Date(time, format = '%d.%m.%Y')] # adjust date
+loans_nfi_data[, time := as.Date(paste(year(time),month(time), '01' , sep='-'))] # adjust to beginning of the month for consistency
+loans_hh_data[, time := as.Date(time, format = '%d.%m.%Y')] # adjust date
+loans_hh_data[, time := as.Date(paste(year(time),month(time), '01' , sep='-'))] # adjust to beginning of the month for consistency
+
+# compute loan growth
+loans_nfi_data <- loans_nfi_data[order(time),]
+loans_nfi_data[, loan_growth := grate(loans, k=1)*100]
+
+loans_hh_data <- loans_hh_data[order(time),]
+loans_hh_data[, loan_growth := grate(loans, k=1)*100]
+
+# bind the data
+loans_data <- rbind(loans_hh_data, loans_nfi_data)
+
+# drop NAs
+loans_data <- loans_data[!is.na(loan_growth),]
+
+# plot loan growth data
+fig_loan_growth <- ggplot(loans_data, aes(x = time, y = loan_growth, group = type, colour = type))
+fig_loan_growth + geom_line() + geom_point() + xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_data$time), as.Date('2020-12-01'))) +
+               scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0)) +
+               labs(title='Loan growth', subtitle='Base = previous month')
+
+# plot npl data
+fig_npls <- ggplot(loans_data, aes(x = time, y = npl_share, group = type, colour = type))
+fig_npls + geom_line() + geom_point() + xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_data$time), as.Date('2020-12-01'))) +
+               scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0)) +
+               labs(title='Non-performing loans', subtitle='% share of total loans')
+
+#
+#
+#
+
 
 #
 #
