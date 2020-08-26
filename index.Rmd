@@ -4,7 +4,7 @@ title: "Macroeconomic dashboard"
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.showtext=TRUE, warning = FALSE,
-                      message = FALSE)
+                      message = FALSE, dpi = 96, fig.width = 12, fig.fullwidth=TRUE, fig.height = 5)
 ```
 
 ```{r back, echo = FALSE, include = FALSE}
@@ -352,9 +352,9 @@ fig_infl <- ggplot(infl, aes(x = time, y = value, group = type, colour = type)) 
                scale_colour_fira(name = element_text("")) + theme_fira() + 
                theme(legend.position ='bottom', legend.margin=margin(0,0,0,0),
                legend.box.margin=margin(-10,-10,-10,-10),
-               plot.margin = margin(0,5,15,-10), legend.title = element_text(face='bold'), 
+               plot.margin = margin(0,5,10,-5), legend.title = element_text(face='bold'), 
                plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), 
-               plot.caption = element_text(hjust=0, margin = margin(15,0,-8,0))) +
+               plot.caption = element_text(hjust=0)) +
                labs(title='Inflation', subtitle='Base = same period previous year', caption = paste0('https://vdb.czso.cz/pll/eweb/sdmx.getXML?d=CPI\n','https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=21727&\np_strid=ACBAA&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
 
 #
@@ -431,25 +431,31 @@ fig_loan_growth <- ggplot(loans_data, aes(x = time, y = loan_growth, group = typ
                scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
                expand = expansion(c(0.05, 0.05)), limits = c(min(loans_data$time), as.Date('2020-12-01'))) +
                scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
-               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
-               labs(title='Loan growth (%)', subtitle='Base = previous month', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=\n22023&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+               legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+               labs(title='Loan growth (%)', subtitle='Base = previous month', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=22023\n&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
 
 # plot npl data
 fig_npls <- ggplot(loans_data, aes(x = time, y = npl_share, group = type, colour = type)) + geom_line() + geom_point() +                       xlab('') + ylab('') + 
                scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
                expand = expansion(c(0.05, 0.05)), limits = c(min(loans_data$time), as.Date('2020-12-01'))) +
                scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
-               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
-               labs(title='Non-performing loans', subtitle='% share of total loans', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=\n22023&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+               legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+               labs(title='Non-performing loans', subtitle='% share of total loans', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=22023\n&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
 ```
 
 <!-- # Macroeconomic dashboard - Czech Republic -->
 
 This dashboard aims to provide basic macroeconomic data for the Czech Republic. The idea is to gather an up-to-date values from different sources and provide an intuitive overview. The initial idea comes from the lack of unified information source about the economic development during the pandemic situation. See also [czechtrack](https://petrbouchal.github.io/czechtrack/) which provides fiscal data and served as inspiration to this endeavour.
 
+# {.tabset .tabset-pills}
+
+## Economic data
+
 \ 
 
-```{r, echo = FALSE, fig.width=11, fig.height=4, fig.fullwidth=TRUE}
+```{r, echo = FALSE, out.width='100%', out.height='100%'}
 fig_sales_serv + geom_line() + geom_point() + xlab('') + ylab('') + 
                scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
                expand = expansion(c(0.05, 0.05)), limits = c(min(serv_current$time), as.Date('2020-12-01'))) +
@@ -461,7 +467,7 @@ fig_sales_serv + geom_line() + geom_point() + xlab('') + ylab('') +
 
 \ 
 
-```{r, echo = FALSE, fig.width=11, fig.height=4, fig.fullwidth=TRUE}
+```{r, echo = FALSE, out.width='100%', out.height='100%'}
 fig_prod_ind + geom_line() + geom_point() + xlab('') + ylab('') + 
                scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
                expand = expansion(c(0.05, 0.05)), limits = c(min(ind_current$time), as.Date('2020-12-01'))) +
@@ -471,7 +477,7 @@ fig_prod_ind + geom_line() + geom_point() + xlab('') + ylab('') +
 
 \ 
 
-```{r, echo = FALSE, fig.width=11, fig.height=4, fig.fullwidth=TRUE}
+```{r, echo = FALSE, out.width='100%', out.height='100%'}
 fig_prod_cons + geom_line() + geom_point() + xlab('') + ylab('') + 
                scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
                expand = expansion(c(0.05, 0.05)), limits = c(min(ind_current$time), as.Date('2020-12-01'))) +
@@ -481,7 +487,7 @@ fig_prod_cons + geom_line() + geom_point() + xlab('') + ylab('') +
 
 \ 
 
-```{r, echo = FALSE, fig.width=11, fig.height=4, fig.fullwidth=TRUE}
+```{r, echo = FALSE, out.width='100%', out.height='100%'}
 plot1 <- fig_urate + geom_line() + geom_point()
 plot2 <- fig_unem + geom_line() + geom_point()
 grid.arrange(plot1, plot2, ncol=2)
@@ -489,13 +495,19 @@ grid.arrange(plot1, plot2, ncol=2)
 
 \ 
 
-```{r, echo = FALSE, fig.width=11, fig.height=4, fig.fullwidth=TRUE}
+```{r, echo = FALSE, out.width='100%', out.height='100%'}
 grid.arrange(fig_infl, fig_infl_ppi, ncol=2)
 ```
 
-```{r, echo = FALSE, fig.width=11, fig.height=5, fig.fullwidth=TRUE}
+\
+
+```{r, echo = FALSE, out.width='100%', out.height='100%'}
 grid.arrange(fig_loan_growth, fig_npls, ncol=2)
 ```
+
+## Leading indicators
+
+## Excess deaths 
 
 <!-- ## Energy consumption 
 #
