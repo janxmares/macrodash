@@ -451,7 +451,7 @@ This dashboard aims to provide basic macroeconomic data for the Czech Republic. 
 
 # {.tabset .tabset-pills}
 
-## Economic data
+## Economy
 
 \ 
 
@@ -507,7 +507,7 @@ grid.arrange(fig_loan_growth, fig_npls, ncol=2)
 
 ## Leading indicators
 
-## Excess deaths 
+## Health
 
 <!-- ## Energy consumption 
 #
