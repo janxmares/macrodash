@@ -7,6 +7,7 @@
 Dashboard with Czech macroeconomic data
 
 To do:
+- add loans in moratorium (available weekly from CNB)
 - source links in makrdown text so they could be clicked and copied
 - info on last update placed just below the introductory text and removed from individual figures
 - add daily PX index data
