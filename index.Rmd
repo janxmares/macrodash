@@ -393,7 +393,6 @@ fig_infl_ppi <- ggplot(ppi_data, aes(x = time, y = value)) + geom_line() + geom_
 # adjust month
 mon <- ifelse(nchar(month(date)) == 1, paste0('0', month(date)), month(date))
 
-
 loans_nfi_link_cnb <- paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.VYSTUP?p_period=1&p_sort=2&p_des=50&p_sestuid=22023&p_uka=7%2C8%2C9&p_strid=AABBAE&p_od=',as.numeric(year(date))-1,'12','&p_do=',year(date),mon,'&p_lang=CS&p_format=2&p_decsep=.')
 loans_hh_link_cnb <- paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.VYSTUP?p_period=1&p_sort=2&p_des=50&p_sestuid=22023&p_uka=16%2C17%2C18&p_strid=AABBAE&p_od=',as.numeric(year(date))-1,'12','&p_do=',year(date),mon,'&p_lang=CS&p_format=2&p_decsep=.')
 
@@ -434,6 +433,74 @@ fig_loan_growth <- ggplot(loans_data, aes(x = time, y = loan_growth, group = typ
                scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
                legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
                labs(title='Loan growth (%)', subtitle='Base = previous month', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=22023\n&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
+
+# plot npl data
+fig_npls <- ggplot(loans_data, aes(x = time, y = npl_share, group = type, colour = type)) + geom_line() + geom_point() +                       xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_data$time), as.Date('2020-12-01'))) +
+               scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+               legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+               labs(title='Non-performing loans', subtitle='% share of total loans', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=22023\n&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
+
+#
+#
+
+# Loans moratoriums (COVID), data from CNB
+# adjust month
+mon <- format(Sys.Date(), format = '%m')
+day <- format(Sys.Date(), format = '%d')
+
+morat_file_cnb_link <- paste0('https://www.cnb.cz/export/sites/cnb/cs/dohled-financni-trh/.galleries/souhrnne_informace_fin_trhy/statistika_odkladu_splatek_a_uveru_v_programech_covid/tydenni/',as.numeric(year(date)),mon,day,'_statistika_covid.xlsx')
+
+morat_file_name <- paste0(as.numeric(year(date)),mon,day,'_statistika_covid.xlsx')
+
+# try downloading data, if available and contains new value, then update the data on moratoriums
+tryCatch({download.file(morat_file_cnb_link, here(morat_file_name), mode='wb')
+          morat_hh <- read_excel(morat_file_name, sheet = 'Moratorium', range="G34:G34", col_names = F)
+          morat_other_hh <- read_excel(morat_file_name, sheet = 'Moratorium', range="G63:G63", col_names = F)
+          morat_nfi <- read_excel(morat_file_name, sheet = 'Moratorium', range="G9:G9", col_names = F)
+          morat_other_nfi <- read_excel(morat_file_name, sheet = 'Moratorium', range="G38:G38", col_names = F)
+          morat_time <- read_excel(morat_file_name, sheet = 'Moratorium', range="B7:B7", col_names = 'time')
+          
+          loans_hh <- read_excel(morat_file_name, sheet = 'Moratorium_podily', range="B5:B5", col_names = 'loans_hh')
+          loans_nfi <- read_excel(morat_file_name, sheet = 'Moratorium_podily', range="C5:C5", col_names = 'loans_nfi')
+          
+          # if available and contains new value, then add it to the data                  
+          morat_data_current <- data.table(read_csv('morat_data.csv'))
+          
+          # reformat the date
+          morat_data_current[, time := as.Date(time, '%d-%m-%y')]
+          
+          morat <- data.table(time = as.Date(morat_time$time), morat_hh = morat_hh+morat_other_hh, morat_nfi = morat_nfi + morat_other_nfi, loans_hh*1000, loans_nfi*1000) # id for identification in figures
+          setnames(morat, c('time','morat_hh','morat_nfi','loans_hh','loans_nfi'))
+          morat[, morat_sh_hh := morat_hh/loans_hh]
+          morat[, morat_sh_nfi := morat_nfi/loans_nfi]
+
+          ifelse(morat$time > max(morat_data_current$time), assign('morat_data', rbind(morat, morat_data_current)), assign('morat_data', morat_data_current))
+          write.csv(morat_data, 'morat_data.csv', row.names = F)
+          },
+          error = function(err){
+          print('The data for the week is not yet available')
+          },
+          warning = function(war){
+          print('The data for the week is not yet available')
+          })
+
+# adjust the moratorium data
+morat_data <- data.table(read_csv('morat_data.csv'))
+morat_long <- melt(morat_data[, j = .(time,morat_sh_hh,morat_sh_nfi)], id = c('time'), variable.name = 'type', value.name = 'value')
+morat_long[type == 'morat_sh_nfi', type := 'Non-financial institutions']
+morat_long[type == 'morat_sh_hh', type := 'Households']
+
+# plot loan growth data
+fig_morat <- ggplot(morat_long, aes(x = time, y = value*100, group = type, colour = type)) + geom_line() + geom_point() +              xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months",
+               expand = expansion(c(0.05, 0.05)), limits = c(min(morat_long$time), as.Date('2020-12-01'))) +
+               scale_y_continuous(labels = scales::label_number(accuracy=1)) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+               legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+               labs(title='Loans in moratorium', subtitle='% share of loans', caption = paste0('https://www.cnb.cz/cs/dohled-financni-trh/souhrnne-informace-fin-trhy/statistika-odkladu-splatek-a-uveru-v-programech-covid/\n','last checked: ', format(date, '%d-%m-%Y')))
 
 # plot npl data
 fig_npls <- ggplot(loans_data, aes(x = time, y = npl_share, group = type, colour = type)) + geom_line() + geom_point() +                       xlab('') + ylab('') + 
@@ -503,6 +570,10 @@ grid.arrange(fig_infl, fig_infl_ppi, ncol=2)
 
 ```{r, echo = FALSE, out.width='100%', out.height='100%'}
 grid.arrange(fig_loan_growth, fig_npls, ncol=2)
+```
+
+```{r, echo = FALSE, out.width='100%', out.height='100%'}
+fig_morat
 ```
 
 ## Leading indicators
