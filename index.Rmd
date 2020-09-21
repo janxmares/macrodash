@@ -463,8 +463,8 @@ tryCatch({download.file(morat_file_cnb_link, here(morat_file_name), mode='wb')
           morat_other_nfi <- read_excel(morat_file_name, sheet = 'Moratorium', range="G38:G38", col_names = F)
           morat_time <- read_excel(morat_file_name, sheet = 'Moratorium', range="B7:B7", col_names = 'time')
           
-          loans_hh <- read_excel(morat_file_name, sheet = 'Moratorium_podily', range="B5:B5", col_names = 'loans_hh')
-          loans_nfi <- read_excel(morat_file_name, sheet = 'Moratorium_podily', range="C5:C5", col_names = 'loans_nfi')
+          loans_hh <- read_excel(morat_file_name, sheet = 'Moratorium_podily', range="B6:B6", col_names = 'loans_hh')
+          loans_nfi <- read_excel(morat_file_name, sheet = 'Moratorium_podily', range="F6:F6", col_names = 'loans_nfi')
           
           # if available and contains new value, then add it to the data                  
           morat_data_current <- data.table(read_csv('morat_data.csv'))
