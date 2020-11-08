@@ -638,7 +638,8 @@ zmr_bands <- zmr_normd %>%
   group_by(is2020, vek_txt, tyden, day_sameyear_floored) %>% 
   summarise(min = min(normd, na.rm = T), 
             max = max(normd, na.rm = T), .groups = "drop") %>% 
-  mutate(vek_txt = fct_relevel(vek_txt, "Total"))
+  mutate(vek_txt = fct_relevel(vek_txt, "Total") %>% 
+           fct_recode(`85+` = "85 a více"))
 ```
 
 
