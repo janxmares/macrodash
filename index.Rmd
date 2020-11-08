@@ -18,6 +18,7 @@ library(eurostat)
 library(readr)
 library(readxl)
 library(lubridate)
+library(forcats)
 ```
 
 ```{r fonts}
@@ -579,6 +580,111 @@ fig_morat
 ## Leading indicators
 
 ## Health
+
+```{r mort-data}
+zmr0 <- czso_get_table("130185", force_redownload = T)
+zmr <- zmr0 %>% 
+  mutate(tyden = as.numeric(tyden),
+         casref_do = as.Date(casref_do),
+         day_sameyear = make_date(1970, month = month(casref_do),
+                                  day = day(casref_do))) %>% 
+  mutate(vek_txt = fct_relevel(vek_txt, "celkem") %>% 
+           fct_recode(Total = "celkem"))
+
+last_date_fmt <- max(zmr$casref_do)
+today_fmt <- today()
+```
+
+```{r time-adjusting-load}
+vek <- read_rds("vek.rds")
+vek_ciselnik <- read_rds("vek_ciselnik.rds")
+vek_prevodnik <- read_csv("vek-prevodnik.csv")
+```
+
+
+```{r time-adjusting}
+vek_slct <- vek %>%  
+  filter(vuzemi_cis == "97") %>% 
+  filter(is.na(pohlavi_txt)) %>% 
+  left_join(vek_ciselnik %>%
+                    select(vek_kod = CHODNOTA, zkr = ZKRTEXT, 
+                           txt = TEXT, matches("MIN|MAX"))) %>% 
+  select(idhod, hodnota, vek_txt, zkr, txt, casref_do) %>% 
+  left_join(vek_prevodnik) %>% 
+  group_by(casref_do, vek_txt = vek_grp) %>% 
+  summarise(pocet_obyv = sum(hodnota, na.rm = T)) %>% 
+  mutate(rok = year(casref_do)) %>% 
+  ungroup() %>% 
+  select(-casref_do)
+
+vek_slct_withsum <- vek_slct %>% 
+  bind_rows(vek_slct %>% 
+              group_by(rok) %>% 
+              summarise(pocet_obyv = sum(pocet_obyv)) %>% 
+              mutate(vek_txt = "Total"))
+
+vek_do2020 <- vek_slct_withsum %>% 
+  bind_rows(vek_slct_withsum %>% 
+              filter(rok == 2019) %>% 
+              mutate(rok = 2020))
+
+zmr_normd <- zmr %>% 
+  left_join(vek_do2020) %>% 
+  mutate(normd = hodnota/pocet_obyv * 1e5)
+
+zmr_bands <- zmr_normd %>% 
+  mutate(is2020 = rok == 2020) %>% 
+  mutate(day_sameyear_floored = floor_date(day_sameyear, "weeks")) %>% 
+  group_by(is2020, vek_txt, tyden, day_sameyear_floored) %>% 
+  summarise(min = min(normd, na.rm = T), 
+            max = max(normd, na.rm = T), .groups = "drop") %>% 
+  mutate(vek_txt = fct_relevel(vek_txt, "Total"))
+```
+
+
+```{r mort-labels}
+lbs_grey <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
+               factor("Total"), as.Date("1970-05-01"), 12.1, "range in \n2011-19",
+               )
+lbs_blue <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
+               factor("Total"), as.Date("1970-02-15"), 11.5, "2020"
+               )
+```
+
+
+```{r age-adjusted-plot}
+ggplot(data = zmr_bands, mapping = aes(group = vek_txt)) +
+  geom_ribbon(data = zmr_bands %>% filter(!is2020),
+              alpha = 0.3,
+              aes(x = day_sameyear_floored, ymin = min, ymax = max)) +
+  geom_line(data = zmr_bands %>% filter(is2020),
+            colour = "darkblue",
+            aes(x = day_sameyear_floored, y = min)) +
+  geom_point(data = zmr_bands %>% filter(is2020),
+            aes(x = day_sameyear_floored, y = min), 
+            size = 1, colour = "darkblue", fill = "white", shape = 21) +
+  facet_wrap(~vek_txt, scales = "free_y") +
+  scale_x_date(date_breaks = "3 months",
+               date_labels = "%b", breaks = c(1,3,6, 9, 12)) +
+  theme_fira() +
+  theme(plot.margin = margin(0,5,10,-5), 
+        legend.title = element_text(face='bold'), 
+        plot.title = element_text(hjust = 0), 
+        plot.subtitle = element_text(hjust=0),
+        plot.caption = element_text(hjust=0)) +
+  labs(x = NULL, y = NULL,
+       title = "Mortality (all-cause)",
+       subtitle = "Deaths per 100,000 by week, 2011-2020. Blue = 2020, grey = range in 2011-2019",
+       caption = str_glue("Based on CZSO dataset 130185 (deaths) a 130142 (age) | last checked {today_fmt} | Last data for {last_date_fmt}.")) +
+  geom_text(data = lbs_grey, aes(x = day_sameyear_floored, 
+                            y = min, label = txt), 
+            fontface = "bold",
+            colour = "grey40",size = 3) +
+  geom_text(data = lbs_blue, aes(x = day_sameyear_floored, 
+                            y = min, label = txt), 
+            fontface = "bold",
+            colour = "darkblue", size = 3)
+```
 
 <!-- ## Energy consumption 
 #
