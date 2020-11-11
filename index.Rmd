@@ -12,6 +12,7 @@ library(data.table)
 library(here)
 library(czso)
 library(dplyr)
+library(tidyr)
 library(stringr)
 library(ggplot2)
 library(eurostat)
@@ -602,7 +603,7 @@ vek_prevodnik <- read_csv("vek-prevodnik.csv")
 ```
 
 
-```{r time-adjusting}
+```{r time-adjusting-age}
 vek_slct <- vek %>%  
   filter(vuzemi_cis == "97") %>% 
   filter(is.na(pohlavi_txt)) %>% 
@@ -614,25 +615,44 @@ vek_slct <- vek %>%
   group_by(casref_do, vek_txt = vek_grp) %>% 
   summarise(pocet_obyv = sum(hodnota, na.rm = T)) %>% 
   mutate(rok = year(casref_do)) %>% 
+  replace_na(list(vek_txt = "Total")) %>% 
   ungroup() %>% 
   select(-casref_do)
 
-vek_slct_withsum <- vek_slct %>% 
-  bind_rows(vek_slct %>% 
-              group_by(rok) %>% 
-              summarise(pocet_obyv = sum(pocet_obyv)) %>% 
-              mutate(vek_txt = "Total"))
+vek_2019 <- vek_slct %>% 
+  filter(rok == 2019, !is.na(vek_txt)) %>% 
+  rename(obyv_2019 = pocet_obyv) %>% 
+  select(-rok)
 
-vek_do2020 <- vek_slct_withsum %>% 
-  bind_rows(vek_slct_withsum %>% 
+vek_do2020 <- vek_slct %>% 
+  bind_rows(vek_slct %>% 
               filter(rok == 2019) %>% 
               mutate(rok = 2020))
+```
 
+
+```{r time-adjusting-age-adjust}
 zmr_normd <- zmr %>% 
+  filter(vek_txt != "Total") %>% 
+  select(hodnota, rok, tyden, roktyden, vek_txt,
+         idhod, stapro_kod, casref_do) %>% 
   left_join(vek_do2020) %>% 
-  mutate(normd = hodnota/pocet_obyv * 1e5)
+  mutate(per_100k = hodnota/pocet_obyv * 1e5) %>% 
+  left_join(vek_2019) %>% 
+  mutate(normd = per_100k * obyv_2019 / 1e5)
 
-zmr_bands <- zmr_normd %>% 
+zmr_normd_with_sum <- zmr_normd %>% 
+  bind_rows(zmr_normd %>% 
+              group_by(rok, tyden, roktyden, casref_do) %>% 
+              summarise(across(c(hodnota, obyv_2019, pocet_obyv, normd), sum)) %>% 
+              mutate(per_100k = hodnota/pocet_obyv * 1e5,
+                     vek_txt = "Total")) %>% 
+  mutate(day_sameyear = make_date(1970, month(casref_do), day(casref_do)))
+```
+
+
+```{r time-adjusting-prep}
+zmr_ribbon_data <- zmr_normd_with_sum %>% 
   mutate(is2020 = rok == 2020) %>% 
   mutate(day_sameyear_floored = floor_date(day_sameyear, "weeks")) %>% 
   group_by(is2020, vek_txt, tyden, day_sameyear_floored) %>% 
@@ -654,14 +674,14 @@ lbs_blue <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
 
 
 ```{r age-adjusted-plot}
-ggplot(data = zmr_bands, mapping = aes(group = vek_txt)) +
-  geom_ribbon(data = zmr_bands %>% filter(!is2020),
+ggplot(data = zmr_ribbon_data, mapping = aes(group = vek_txt)) +
+  geom_ribbon(data = zmr_ribbon_data %>% filter(!is2020),
               alpha = 0.3,
               aes(x = day_sameyear_floored, ymin = min, ymax = max)) +
-  geom_line(data = zmr_bands %>% filter(is2020),
+  geom_line(data = zmr_ribbon_data %>% filter(is2020),
             colour = "darkblue",
             aes(x = day_sameyear_floored, y = min)) +
-  geom_point(data = zmr_bands %>% filter(is2020),
+  geom_point(data = zmr_ribbon_data %>% filter(is2020),
             aes(x = day_sameyear_floored, y = min), 
             size = 1, colour = "darkblue", fill = "white", shape = 21) +
   facet_wrap(~vek_txt, scales = "free_y") +
@@ -675,7 +695,7 @@ ggplot(data = zmr_bands, mapping = aes(group = vek_txt)) +
         plot.caption = element_text(hjust=0)) +
   labs(x = NULL, y = NULL,
        title = "Mortality (all-cause)",
-       subtitle = "Deaths per 100,000 by week, 2011-2020. Blue = 2020, grey = range in 2011-2019",
+       subtitle = "Deaths per week, 2011-2020. Blue = 2020, grey = range in 2011-2019",
        caption = str_glue("Based on CZSO dataset 130185 (deaths) a 130142 (age) | last checked {today_fmt} | Last data for {last_date_fmt}.")) +
   geom_text(data = lbs_grey, aes(x = day_sameyear_floored, 
                             y = min, label = txt), 
