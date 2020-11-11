@@ -696,7 +696,7 @@ ggplot(data = zmr_ribbon_data, mapping = aes(group = vek_txt)) +
   labs(x = NULL, y = NULL,
        title = "Mortality (all-cause)",
        subtitle = "Deaths per week, 2011-2020. Blue = 2020, grey = range in 2011-2019",
-       caption = str_glue("Based on CZSO dataset 130185 (deaths) a 130142 (age) | last checked {today_fmt} | Last data for {last_date_fmt}.")) +
+       caption = str_glue("Based on CZSO dataset 130185 (deaths) and 130142 (age) | last checked {today_fmt} | Last data for {last_date_fmt}.")) +
   geom_text(data = lbs_grey, aes(x = day_sameyear_floored, 
                             y = min, label = txt), 
             fontface = "bold",
