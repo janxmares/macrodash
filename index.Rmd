@@ -688,7 +688,7 @@ ggplot(data = zmr_ribbon_data, mapping = aes(group = vek_txt)) +
   scale_x_date(date_breaks = "3 months",
                date_labels = "%b", breaks = c(1,3,6, 9, 12)) +
   theme_fira() +
-  theme(plot.margin = margin(0,5,10,-5), 
+  theme(plot.margin = margin(0,5,10,0), 
         legend.title = element_text(face='bold'), 
         plot.title = element_text(hjust = 0), 
         plot.subtitle = element_text(hjust=0),
