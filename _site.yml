@@ -1,7 +1,7 @@
 name: macrodash
 output_dir: docs
 include: ["demo.R"]
-exclude: ["LICENSE.md", "*.csv", "*.rds", "*.xml", "renv", "renv.lock"]
+exclude: ["LICENSE.md", "*.csv", "*.rds", "*.xml", "renv", "renv.lock", "*.zip"]
 navbar:
   title: "Czech macroeconomic data"
   right:

@@ -5,19 +5,22 @@ title: "Macroeconomic dashboard"
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.showtext=TRUE, warning = FALSE,
                       message = FALSE, dpi = 96, fig.width = 12, fig.fullwidth=TRUE, fig.height = 5)
-```
 
-```{r back, echo = FALSE, include = FALSE}
 library(data.table)
 library(here)
 library(czso)
 library(dplyr)
+library(tidyr)
 library(stringr)
 library(ggplot2)
 library(eurostat)
 library(readr)
 library(readxl)
 library(lubridate)
+library(forcats)
+library(firatheme)
+library(gridExtra)
+library(rsdmx)
 ```
 
 ```{r fonts}
@@ -26,10 +29,6 @@ source("fonts.r")
 
 
 ```{r back-2, echo = FALSE, include = FALSE}
-library(firatheme)
-library(gridExtra)
-library(rsdmx)
-
 # Load functions on start
 # Function for lags
   lagp <- function(x, k=1) {
@@ -579,6 +578,133 @@ fig_morat
 ## Leading indicators
 
 ## Health
+
+```{r mort-data}
+zmr0 <- czso_get_table("130185", force_redownload = T)
+zmr <- zmr0 %>% 
+  mutate(tyden = as.numeric(tyden),
+         casref_do = as.Date(casref_do),
+         day_sameyear = make_date(1970, month = month(casref_do),
+                                  day = day(casref_do))) %>% 
+  mutate(vek_txt = fct_relevel(vek_txt, "celkem") %>% 
+           fct_recode(Total = "celkem"))
+
+last_date_fmt <- max(zmr$casref_do)
+today_fmt <- today()
+```
+
+```{r time-adjusting-load}
+vek <- read_rds("vek.rds")
+vek_ciselnik <- read_rds("vek_ciselnik.rds")
+vek_prevodnik <- read_csv("vek-prevodnik.csv")
+```
+
+
+```{r time-adjusting-age}
+vek_slct <- vek %>%  
+  filter(vuzemi_cis == "97") %>% 
+  filter(is.na(pohlavi_txt)) %>% 
+  left_join(vek_ciselnik %>%
+                    select(vek_kod = CHODNOTA, zkr = ZKRTEXT, 
+                           txt = TEXT, matches("MIN|MAX"))) %>% 
+  select(idhod, hodnota, vek_txt, zkr, txt, casref_do) %>% 
+  left_join(vek_prevodnik) %>% 
+  group_by(casref_do, vek_txt = vek_grp) %>% 
+  summarise(pocet_obyv = sum(hodnota, na.rm = T)) %>% 
+  mutate(rok = year(casref_do)) %>% 
+  replace_na(list(vek_txt = "Total")) %>% 
+  ungroup() %>% 
+  select(-casref_do)
+
+vek_2019 <- vek_slct %>% 
+  filter(rok == 2019, !is.na(vek_txt)) %>% 
+  rename(obyv_2019 = pocet_obyv) %>% 
+  select(-rok)
+
+vek_do2020 <- vek_slct %>% 
+  bind_rows(vek_slct %>% 
+              filter(rok == 2019) %>% 
+              mutate(rok = 2020))
+```
+
+
+```{r time-adjusting-age-adjust}
+zmr_normd <- zmr %>% 
+  filter(vek_txt != "Total") %>% 
+  select(hodnota, rok, tyden, roktyden, vek_txt,
+         idhod, stapro_kod, casref_do) %>% 
+  left_join(vek_do2020) %>% 
+  mutate(per_100k = hodnota/pocet_obyv * 1e5) %>% 
+  left_join(vek_2019) %>% 
+  mutate(normd = per_100k * obyv_2019 / 1e5)
+
+zmr_normd_with_sum <- zmr_normd %>% 
+  bind_rows(zmr_normd %>% 
+              group_by(rok, tyden, roktyden, casref_do) %>% 
+              summarise(across(c(hodnota, obyv_2019, pocet_obyv, normd), sum)) %>% 
+              mutate(per_100k = hodnota/pocet_obyv * 1e5,
+                     vek_txt = "Total")) %>% 
+  mutate(day_sameyear = make_date(1970, month(casref_do), day(casref_do)))
+```
+
+
+```{r time-adjusting-prep}
+zmr_ribbon_data <- zmr_normd_with_sum %>% 
+  mutate(is2020 = rok == 2020) %>% 
+  mutate(day_sameyear_floored = floor_date(day_sameyear, "weeks")) %>% 
+  group_by(is2020, vek_txt, tyden, day_sameyear_floored) %>% 
+  summarise(min = min(normd, na.rm = T), 
+            max = max(normd, na.rm = T), .groups = "drop") %>% 
+  mutate(vek_txt = fct_relevel(vek_txt, "Total") %>% 
+           fct_recode(`85+` = "85 a více"))
+```
+
+
+```{r mort-labels}
+lbs_grey <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
+               factor("Total"), as.Date("1970-02-01"), 2650, "range in \n2011-19",
+               )
+lbs_blue <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
+               factor("Total"), as.Date("1970-05-05"), 1900, "2020"
+               )
+```
+
+
+```{r age-adjusted-plot}
+ggplot(data = zmr_ribbon_data, mapping = aes(group = vek_txt)) +
+  geom_ribbon(data = zmr_ribbon_data %>% filter(!is2020),
+              alpha = 0.3,
+              aes(x = day_sameyear_floored, ymin = min, ymax = max)) +
+  geom_line(data = zmr_ribbon_data %>% filter(is2020),
+            colour = "darkblue",
+            aes(x = day_sameyear_floored, y = min)) +
+  geom_point(data = zmr_ribbon_data %>% filter(is2020),
+            aes(x = day_sameyear_floored, y = min), 
+            size = 1, colour = "darkblue", fill = "white", shape = 21) +
+  facet_wrap(~vek_txt, scales = "free_y") +
+  scale_x_date(date_breaks = "3 months",
+               date_labels = "%b", breaks = c(1,3,6, 9, 12)) +
+  theme_fira() +
+  theme(plot.margin = margin(0,5,10,0), 
+        legend.title = element_text(face='bold'), 
+        plot.title = element_text(hjust = 0), 
+        plot.subtitle = element_text(hjust=0),
+        plot.caption = element_text(hjust=0)) +
+  labs(x = NULL, y = NULL,
+       title = "Mortality (all-cause)",
+       subtitle = "Deaths per week, 2011-2020. Blue = 2020, grey = range in 2011-2019",
+       caption = str_glue("Based on CZSO dataset 130185 (deaths) and 130142 (age) | last checked {today_fmt} | Last data for {last_date_fmt}.")) +
+  geom_text(data = lbs_grey, aes(x = day_sameyear_floored, 
+                            y = min, label = txt), 
+            family = "Fira Sans",
+            fontface = "bold",
+            colour = "#454545",size = 3) +
+  geom_text(data = lbs_blue, aes(x = day_sameyear_floored, 
+                            y = min, label = txt), 
+            family = "Fira Sans",
+            fontface = "bold",
+            colour = "darkblue", size = 3)
+```
 
 <!-- ## Energy consumption 
 #
