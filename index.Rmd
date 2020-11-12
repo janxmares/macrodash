@@ -673,7 +673,7 @@ lbs_blue <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
 ```{r age-adjusted-plot}
 ggplot(data = zmr_ribbon_data, mapping = aes(group = vek_txt)) +
   geom_ribbon(data = zmr_ribbon_data %>% filter(!is2020),
-              alpha = 0.4,
+              alpha = 0.3,
               aes(x = day_sameyear_floored, ymin = min, ymax = max)) +
   geom_line(data = zmr_ribbon_data %>% filter(is2020),
             colour = "darkblue",
@@ -698,7 +698,7 @@ ggplot(data = zmr_ribbon_data, mapping = aes(group = vek_txt)) +
                             y = min, label = txt), 
             family = "Fira Sans",
             fontface = "bold",
-            colour = "white",size = 3) +
+            colour = "#454545",size = 3) +
   geom_text(data = lbs_blue, aes(x = day_sameyear_floored, 
                             y = min, label = txt), 
             family = "Fira Sans",
