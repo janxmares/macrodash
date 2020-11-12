@@ -662,10 +662,10 @@ zmr_ribbon_data <- zmr_normd_with_sum %>%
 
 ```{r mort-labels}
 lbs_grey <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
-               factor("Total"), as.Date("1970-05-01"), 12.1, "range in \n2011-19",
+               factor("Total"), as.Date("1970-02-01"), 2650, "range in \n2011-19",
                )
 lbs_blue <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
-               factor("Total"), as.Date("1970-02-15"), 11.5, "2020"
+               factor("Total"), as.Date("1970-05-05"), 1900, "2020"
                )
 ```
 
@@ -696,10 +696,12 @@ ggplot(data = zmr_ribbon_data, mapping = aes(group = vek_txt)) +
        caption = str_glue("Based on CZSO dataset 130185 (deaths) and 130142 (age) | last checked {today_fmt} | Last data for {last_date_fmt}.")) +
   geom_text(data = lbs_grey, aes(x = day_sameyear_floored, 
                             y = min, label = txt), 
+            family = "Fira Sans",
             fontface = "bold",
-            colour = "grey40",size = 3) +
+            colour = "white",size = 3) +
   geom_text(data = lbs_blue, aes(x = day_sameyear_floored, 
                             y = min, label = txt), 
+            family = "Fira Sans",
             fontface = "bold",
             colour = "darkblue", size = 3)
 ```
