@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CompactData xmlns="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message" xmlns:eco="urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=IMF:ECOFIN_DSD:1.0:compact" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message SDMXMessage.xsd urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=IMF:ECOFIN_DSD:1.0:compact IMF_ECOFIN_DSD_Compact.xsd">
-<Header><ID>SDDSPlus_CZSO_CPI</ID><Test>false</Test><Prepared>2020-09-09T12:13:11</Prepared><Sender id="CZ1"><Name xml:lang="en">Czech Statistical Office</Name><Contact><Role xml:lang="en">Technical Implementation</Role><Name xml:lang="en">Martin Cerny</Name><Email>martin.cerny@czso.cz</Email></Contact><Contact><Role xml:lang="en">Contact Person for Data Queries</Role><Name xml:lang="en">Pavel Riha</Name><Email>pavel.riha@czso.cz</Email></Contact></Sender><Receiver id="IMF"></Receiver><DataSetID>CZSO_CPI</DataSetID><DataSetAction>Replace</DataSetAction></Header>
+<Header><ID>SDDSPlus_CZSO_CPI</ID><Test>false</Test><Prepared>2020-12-09T12:18:18</Prepared><Sender id="CZ1"><Name xml:lang="en">Czech Statistical Office</Name><Contact><Role xml:lang="en">Technical Implementation</Role><Name xml:lang="en">Martin Cerny</Name><Email>martin.cerny@czso.cz</Email></Contact><Contact><Role xml:lang="en">Contact Person for Data Queries</Role><Name xml:lang="en">Pavel Riha</Name><Email>pavel.riha@czso.cz</Email></Contact></Sender><Receiver id="IMF"></Receiver><DataSetID>CZSO_CPI</DataSetID><DataSetAction>Replace</DataSetAction></Header>
 <eco:DataSet>
 <eco:Series DATA_DOMAIN="CPI" REF_AREA="CZ" INDICATOR="PCPI_IX" COUNTERPART_AREA="_Z" FREQ="M" BASE_PER="2015" UNIT_MULT="0" TIME_FORMAT="P1M">
 <eco:Obs TIME_PERIOD="2010-01" OBS_VALUE="92.50" OBS_STATUS="A"/>
@@ -131,6 +131,9 @@
 <eco:Obs TIME_PERIOD="2020-06" OBS_VALUE="112.10" OBS_STATUS="A"/>
 <eco:Obs TIME_PERIOD="2020-07" OBS_VALUE="112.60" OBS_STATUS="A"/>
 <eco:Obs TIME_PERIOD="2020-08" OBS_VALUE="112.60" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2020-09" OBS_VALUE="111.90" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2020-10" OBS_VALUE="112.10" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2020-11" OBS_VALUE="112.10" OBS_STATUS="A"/>
 </eco:Series>
 </eco:DataSet>
 </CompactData>

@@ -581,6 +581,9 @@ fig_morat
 
 ```{r mort-data}
 zmr0 <- czso_get_table("130185", force_redownload = T)
+zmr0$vek_txt[zmr0$vek_txt == '65-74'] <- '65-84'
+zmr0$vek_txt[zmr0$vek_txt == '75-84'] <- '65-84'
+
 zmr <- zmr0 %>% 
   mutate(tyden = as.numeric(tyden),
          casref_do = as.Date(casref_do),
