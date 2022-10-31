@@ -18,14 +18,14 @@ jobs:
       
       - name: Install XQuartz on MacOS
         if: runner.os == 'macOS'
-        run: brew cask install xquartz
+        run: brew install xquartz --cask
       
       - name: Install cairo
         if: runner.os == 'macOS'
         run: brew install cairo
 
       - name: Install pandoc
-        uses: r-lib/actions/setup-pandoc@v1
+        uses: r-lib/actions/setup-pandoc@v2
         with:
           pandoc-version: '2.7.3' # The pandoc version to download (if necessary) and use.
 
