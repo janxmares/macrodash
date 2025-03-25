@@ -22,7 +22,7 @@ jobs:
         run: brew install cairo
 
       - name: Install pandoc
-        uses: r-lib/actions/setup-pandoc@v3
+        uses: r-lib/actions/setup-pandoc@v2
         with:
           pandoc-version: '3.1.8' # Updated to a more recent version of pandoc.
 
