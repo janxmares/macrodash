@@ -8,14 +8,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup R
-        uses: r-lib/actions/setup-r@v2
+        uses: r-lib/actions/setup-r@v3
 
-      # - name: Install locale
-      #   run: locale-gen cs_CZ.UTF-8
-      
       - name: Install XQuartz on MacOS
         if: runner.os == 'macOS'
         run: brew install xquartz --cask
@@ -25,12 +22,12 @@ jobs:
         run: brew install cairo
 
       - name: Install pandoc
-        uses: r-lib/actions/setup-pandoc@v2
+        uses: r-lib/actions/setup-pandoc@v3
         with:
-          pandoc-version: '2.7.3' # The pandoc version to download (if necessary) and use.
+          pandoc-version: '3.1.8' # Updated to a more recent version of pandoc.
 
       - name: Cache Renv packages
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: $HOME/.local/share/renv
           key: r-${{ hashFiles('renv.lock') }}
@@ -48,7 +45,7 @@ jobs:
           Rscript -e "rmarkdown::render_site(encoding = 'UTF-8')"
      
       - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GH_PAT_MD }}
           publish_dir: docs
