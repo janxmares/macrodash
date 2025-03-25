@@ -1349,7 +1349,7 @@
     "firatheme": {
       "Package": "firatheme",
       "Version": "0.2.4",
-      "Source": "GitHub",
+      "Source": "Local",
       "Type": "Package",
       "Title": "A ggplot2 Theme using the Fira Sans Font",
       "Author": "Erik-Jan van Kesteren",
@@ -1364,12 +1364,9 @@
         "grDevices"
       ],
       "RoxygenNote": "7.1.1",
-      "RemoteType": "github",
-      "RemoteHost": "api.github.com",
-      "RemoteUsername": "vankesteren",
-      "RemoteRepo": "firatheme",
-      "RemoteRef": "master",
-      "RemoteSha": "006d4d04db054e8678278124829e4c3adb386214"
+      "NeedsCompilation": "no",
+      "RemoteType": "local",
+      "RemoteUrl": "firatheme_0.2.4.tar.gz"
     },
     "fontawesome": {
       "Package": "fontawesome",
