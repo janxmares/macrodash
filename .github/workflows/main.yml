@@ -41,6 +41,8 @@ jobs:
           R -e 'renv::restore()'
 
       - name: Render Site
+        env:
+          ARAD_API_TOKEN: ${{ secrets.ARAD_API_TOKEN }}
         run: |-
           Rscript -e "rmarkdown::render_site(encoding = 'UTF-8')"
      

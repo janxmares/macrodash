@@ -330,7 +330,7 @@ cpi_data <- cpi_data[, .(time, value, type = "CPI inflation")]
 # =============================================================================
 
 # define request
-core_infl_req <- request(paste0("https://www.cnb.cz/aradb/api/v1/data?indicator_id_list=SCPIMZM09YOYPECNA&months_before=12&decimal_separator=point&decimals=2&delimiter=comma&api_key=", Sys.getenv('cnb_api_key')))
+core_infl_req <- request(paste0("https://www.cnb.cz/aradb/api/v1/data?indicator_id_list=SCPIMZM09YOYPECNA&months_before=12&decimal_separator=point&decimals=2&delimiter=comma&api_key=", Sys.getenv('ARAD_API_TOKEN')))
 
 # request
 resp <- core_infl_req |> 
@@ -420,7 +420,7 @@ fig_infl_ppi <- ggplot(ppi_data, aes(x = time, y = value)) + geom_line() + geom_
 # series SMIRNOOBUVMIRS237CZK013111 - NFI new loans CZK - interest rate
 
 # define request
-loans_req <- request(paste0("https://www.cnb.cz/aradb/api/v1/data?indicator_id_list=SMIRSTOBUVMOBJ301CZK1,SMIRSTOBUVMOBJ322CZK1,SMIRSTOBUVMOBJ305CZK1,SMIRSTOBUVMOBJ305CZK1,SMIRNOOBUVMOBJ305CZK013111,SMIRNOOBUVMOBJ304CZK013111,SMIRNOOBUVMOBJ237CZK013111,SMIRNOOBUVMIRS237CZK013111,SMIRSTOBUVMOBJ201CZK1,SUCM100111XXX801201,SUCM100311XXX801201&months_before=25&decimal_separator=point&decimals=2&delimiter=comma&api_key=", Sys.getenv('cnb_api_key')))
+loans_req <- request(paste0("https://www.cnb.cz/aradb/api/v1/data?indicator_id_list=SMIRSTOBUVMOBJ301CZK1,SMIRSTOBUVMOBJ322CZK1,SMIRSTOBUVMOBJ305CZK1,SMIRSTOBUVMOBJ305CZK1,SMIRNOOBUVMOBJ305CZK013111,SMIRNOOBUVMOBJ304CZK013111,SMIRNOOBUVMOBJ237CZK013111,SMIRNOOBUVMIRS237CZK013111,SMIRSTOBUVMOBJ201CZK1,SUCM100111XXX801201,SUCM100311XXX801201&months_before=25&decimal_separator=point&decimals=2&delimiter=comma&api_key=", Sys.getenv('ARAD_API_KEY')))
 
 # request
 resp <- loans_req |> 
