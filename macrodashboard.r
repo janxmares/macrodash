@@ -1,6 +1,5 @@
 # Creating an up to date dashboard for the czech economy
 # Jan Mares
-
 library(data.table)
 library(here)
 library(czso)

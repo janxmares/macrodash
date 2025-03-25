@@ -13,19 +13,29 @@
 
 <title>Macroeconomic dashboard</title>
 
-<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 <link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
 <script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
-<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
-<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
 
 <style type="text/css">
   code{white-space: pre-wrap;}
@@ -34,14 +44,10 @@
   div.column{display: inline-block; vertical-align: top; width: 50%;}
   div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
   ul.task-list{list-style: none;}
-    </style>
+      .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
 
 <style type="text/css">code{white-space: pre;}</style>
-<style type="text/css">
-  pre:not([class]) {
-    background-color: white;
-  }
-</style>
 <script type="text/javascript">
 if (window.hljs) {
   hljs.configure({languages: []});
@@ -54,32 +60,7 @@ if (window.hljs) {
 
 
 
-<style type="text/css">
-h1 {
-  font-size: 34px;
-}
-h1.title {
-  font-size: 38px;
-}
-h2 {
-  font-size: 30px;
-}
-h3 {
-  font-size: 24px;
-}
-h4 {
-  font-size: 18px;
-}
-h5 {
-  font-size: 16px;
-}
-h6 {
-  font-size: 12px;
-}
-.table th:not([align]) {
-  text-align: left;
-}
-</style>
+
 
 
 
@@ -90,10 +71,6 @@ h6 {
   max-width: 940px;
   margin-left: auto;
   margin-right: auto;
-}
-code {
-  color: inherit;
-  background-color: rgba(0, 0, 0, 0.04);
 }
 img {
   max-width:100%;
@@ -110,40 +87,16 @@ button.code-folding-btn:focus {
 summary {
   display: list-item;
 }
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
 </style>
 
 
 <style type="text/css">
-/* padding for bootstrap navbar */
-body {
-  padding-top: 51px;
-  padding-bottom: 40px;
-}
-/* offset scroll position for anchor links (for fixed navbar)  */
-.section h1 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h2 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h3 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h4 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h5 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h6 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
 .dropdown-submenu {
   position: relative;
 }
@@ -171,7 +124,7 @@ body {
   margin-right: -10px;
 }
 .dropdown-submenu:hover>a:after {
-  border-left-color: #ffffff;
+  border-left-color: #adb5bd;
 }
 .dropdown-submenu.pull-left {
   float: none;
@@ -183,7 +136,7 @@ body {
 }
 </style>
 
-<script>
+<script type="text/javascript">
 // manage active state of menu based on current page
 $(document).ready(function () {
   // active menu anchor
@@ -193,11 +146,28 @@ $(document).ready(function () {
     href = "index.html";
   var menuAnchor = $('a[href="' + href + '"]');
 
-  // mark it active
-  menuAnchor.parent().addClass('active');
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
 
-  // if it's got a parent navbar menu mark it active as well
-  menuAnchor.closest('li.dropdown').addClass('active');
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
 });
 </script>
 
@@ -209,13 +179,12 @@ $(document).ready(function () {
   max-height: 500px;
   min-height: 44px;
   overflow-y: auto;
-  background: white;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
 
-.tabset-dropdown > .nav-tabs > li.active:before {
-  content: "";
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
   font-family: 'Glyphicons Halflings';
   display: inline-block;
   padding: 10px;
@@ -223,16 +192,9 @@ $(document).ready(function () {
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-  content: "&#xe258;";
-  border: none;
-}
-
-.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-  content: "";
+  content: "\e258";
   font-family: 'Glyphicons Halflings';
-  display: inline-block;
-  padding: 10px;
-  border-right: 1px solid #ddd;
+  border: none;
 }
 
 .tabset-dropdown > .nav-tabs > li.active {
@@ -276,7 +238,7 @@ $(document).ready(function () {
 <div class="navbar navbar-default  navbar-fixed-top" role="navigation">
   <div class="container">
     <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
@@ -290,7 +252,7 @@ $(document).ready(function () {
       <ul class="nav navbar-nav navbar-right">
         <li>
   <a href="https://github.com/janxmares/macrodash">
-    <span class="fas fa-github fa-lg"></span>
+    <span class="fa fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -299,7 +261,7 @@ $(document).ready(function () {
   </div><!--/.container -->
 </div><!--/.navbar -->
 
-<div class="fluid-row" id="header">
+<div id="header">
 
 
 
@@ -309,14 +271,21 @@ $(document).ready(function () {
 
 
 <!-- # Macroeconomic dashboard - Czech Republic -->
-<p>This dashboard aims to provide basic macroeconomic data for the Czech Republic. The idea is to gather an up-to-date values from different sources and provide an intuitive overview. The initial idea comes from the lack of unified information source about the economic development during the pandemic situation. See also <a href="https://petrbouchal.github.io/czechtrack/">czechtrack</a> which provides fiscal data and served as inspiration to this endeavour.</p>
+<p>This dashboard aims to provide basic macroeconomic data for the Czech
+Republic. The idea is to gather an up-to-date values from different
+sources and provide an intuitive overview. The initial idea comes from
+the lack of unified information source about the economic development
+during the pandemic situation. See also <a
+href="https://petrbouchal.github.io/czechtrack/">czechtrack</a> which
+provides fiscal data and served as inspiration to this endeavour.</p>
 <div id="section" class="section level1 tabset tabset-pills">
-<h1></h1>
+<h1 class="tabset tabset-pills"></h1>
 <div id="economy" class="section level2">
 <h2>Economy</h2>
 <p> </p>
 <p><img src="index_files/figure-html/unnamed-chunk-1-1.png" width="100%" height="100%" /></p>
-<p> </p>
+<p><br />
+</p>
 <p><img src="index_files/figure-html/unnamed-chunk-2-1.png" width="100%" height="100%" /></p>
 <p> </p>
 <p><img src="index_files/figure-html/unnamed-chunk-3-1.png" width="100%" height="100%" /></p>
@@ -327,15 +296,152 @@ $(document).ready(function () {
 <p><br />
 </p>
 <p><img src="index_files/figure-html/unnamed-chunk-6-1.png" width="100%" height="100%" /></p>
+<p><br />
+</p>
 <p><img src="index_files/figure-html/unnamed-chunk-7-1.png" width="100%" height="100%" /></p>
-</div>
-<div id="leading-indicators" class="section level2">
-<h2>Leading indicators</h2>
-</div>
-<div id="health" class="section level2">
-<h2>Health</h2>
-<p><img src="index_files/figure-html/age-adjusted-plot-1.png" width="1152" /></p>
-<!-- ## Energy consumption 
+<p><br />
+</p>
+<p><img src="index_files/figure-html/unnamed-chunk-8-1.png" width="100%" height="100%" /></p>
+<!-- 
+# ```{r, echo = FALSE, out.width='100%', out.height='100%'}
+# fig_morat
+# ```
+
+## Leading indicators
+
+## Health
+
+# ```{r mort-data}
+# zmr0 <- czso_get_table("130185", force_redownload = T)
+# zmr0$vek_txt[zmr0$vek_txt == '65-74'] <- '65-84'
+# zmr0$vek_txt[zmr0$vek_txt == '75-84'] <- '65-84'
+
+# zmr <- zmr0 %>% 
+#   mutate(tyden = as.numeric(tyden),
+#          casref_do = as.Date(casref_do),
+#          day_sameyear = make_date(1970, month = month(casref_do),
+#                                   day = day(casref_do))) %>% 
+#   mutate(vek_txt = fct_relevel(vek_txt, "celkem") %>% 
+#            fct_recode(Total = "celkem"))
+
+# last_date_fmt <- max(zmr$casref_do)
+# today_fmt <- today()
+# ```
+
+# ```{r time-adjusting-load}
+# vek <- read_rds("vek.rds")
+# vek_ciselnik <- read_rds("vek_ciselnik.rds")
+# vek_prevodnik <- read_csv("vek-prevodnik.csv")
+# ```
+
+
+# ```{r time-adjusting-age}
+# vek_slct <- vek %>%  
+#   filter(vuzemi_cis == "97") %>% 
+#   filter(is.na(pohlavi_txt)) %>% 
+#   left_join(vek_ciselnik %>%
+#                     select(vek_kod = CHODNOTA, zkr = ZKRTEXT, 
+#                            txt = TEXT, matches("MIN|MAX"))) %>% 
+#   select(idhod, hodnota, vek_txt, zkr, txt, casref_do) %>% 
+#   left_join(vek_prevodnik) %>% 
+#   group_by(casref_do, vek_txt = vek_grp) %>% 
+#   summarise(pocet_obyv = sum(hodnota, na.rm = T)) %>% 
+#   mutate(rok = year(casref_do)) %>% 
+#   replace_na(list(vek_txt = "Total")) %>% 
+#   ungroup() %>% 
+#   select(-casref_do)
+
+# vek_2019 <- vek_slct %>% 
+#   filter(rok == 2019, !is.na(vek_txt)) %>% 
+#   rename(obyv_2019 = pocet_obyv) %>% 
+#   select(-rok)
+
+# vek_do2020 <- vek_slct %>% 
+#   bind_rows(vek_slct %>% 
+#               filter(rok == 2019) %>% 
+#               mutate(rok = 2020))
+# ```
+
+
+# ```{r time-adjusting-age-adjust}
+# zmr_normd <- zmr %>% 
+#   filter(vek_txt != "Total") %>% 
+#   select(hodnota, rok, tyden, roktyden, vek_txt,
+#          idhod, stapro_kod, casref_do) %>% 
+#   left_join(vek_do2020) %>% 
+#   mutate(per_100k = hodnota/pocet_obyv * 1e5) %>% 
+#   left_join(vek_2019) %>% 
+#   mutate(normd = per_100k * obyv_2019 / 1e5)
+
+# zmr_normd_with_sum <- zmr_normd %>% 
+#   bind_rows(zmr_normd %>% 
+#               group_by(rok, tyden, roktyden, casref_do) %>% 
+#               summarise(across(c(hodnota, obyv_2019, pocet_obyv, normd), sum)) %>% 
+#               mutate(per_100k = hodnota/pocet_obyv * 1e5,
+#                      vek_txt = "Total")) %>% 
+#   mutate(day_sameyear = make_date(1970, month(casref_do), day(casref_do)))
+# ```
+
+
+# ```{r time-adjusting-prep}
+# zmr_ribbon_data <- zmr_normd_with_sum %>% 
+#   mutate(is2020 = rok == 2020) %>% 
+#   mutate(day_sameyear_floored = floor_date(day_sameyear, "weeks")) %>% 
+#   group_by(is2020, vek_txt, tyden, day_sameyear_floored) %>% 
+#   summarise(min = min(normd, na.rm = T), 
+#             max = max(normd, na.rm = T), .groups = "drop") %>% 
+#   mutate(vek_txt = fct_relevel(vek_txt, "Total") %>% 
+#            fct_recode(`85+` = "85 a více"))
+# ```
+
+
+# ```{r mort-labels}
+# lbs_grey <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
+#                factor("Total"), as.Date("1970-02-01"), 2650, "range in \n2011-19",
+#                )
+# lbs_blue <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
+#                factor("Total"), as.Date("1970-05-05"), 1900, "2020"
+#                )
+# ```
+
+
+# ```{r age-adjusted-plot}
+# ggplot(data = zmr_ribbon_data, mapping = aes(group = vek_txt)) +
+#   geom_ribbon(data = zmr_ribbon_data %>% filter(!is2020),
+#               alpha = 0.3,
+#               aes(x = day_sameyear_floored, ymin = min, ymax = max)) +
+#   geom_line(data = zmr_ribbon_data %>% filter(is2020),
+#             colour = "darkblue",
+#             aes(x = day_sameyear_floored, y = min)) +
+#   geom_point(data = zmr_ribbon_data %>% filter(is2020),
+#             aes(x = day_sameyear_floored, y = min), 
+#             size = 1, colour = "darkblue", fill = "white", shape = 21) +
+#   facet_wrap(~vek_txt, scales = "free_y") +
+#   scale_x_date(date_breaks = "3 months",
+#                date_labels = "%b", breaks = c(1,3,6, 9, 12)) +
+#   theme_fira() +
+#   theme(plot.margin = margin(0,5,10,0), 
+#         legend.title = element_text(face='bold'), 
+#         plot.title = element_text(hjust = 0), 
+#         plot.subtitle = element_text(hjust=0),
+#         plot.caption = element_text(hjust=0)) +
+#   labs(x = NULL, y = NULL,
+#        title = "Mortality (all-cause)",
+#        subtitle = "Deaths per week, 2011-2020. Blue = 2020, grey = range in 2011-2019",
+#        caption = str_glue("Based on CZSO dataset 130185 (deaths) and 130142 (age) | last checked {today_fmt} | Last data for {last_date_fmt}.")) +
+#   geom_text(data = lbs_grey, aes(x = day_sameyear_floored, 
+#                             y = min, label = txt), 
+#             family = "Fira Sans",
+#             fontface = "bold",
+#             colour = "#454545",size = 3) +
+#   geom_text(data = lbs_blue, aes(x = day_sameyear_floored, 
+#                             y = min, label = txt), 
+#             family = "Fira Sans",
+#             fontface = "bold",
+#             colour = "darkblue", size = 3)
+# ```
+
+## Energy consumption 
 #
 ## PX index
 # -->
@@ -370,7 +476,7 @@ $(document).ready(function () {
 
 $(document).ready(function () {
   $('.tabset-dropdown > .nav-tabs > li').click(function () {
-    $(this).parent().toggleClass('nav-tabs-open')
+    $(this).parent().toggleClass('nav-tabs-open');
   });
 });
 </script>

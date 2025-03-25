@@ -8,6 +8,7 @@ knitr::opts_chunk$set(echo = FALSE, fig.showtext=TRUE, warning = FALSE,
 
 library(data.table)
 library(here)
+library(httr2)
 library(czso)
 library(dplyr)
 library(tidyr)
@@ -21,6 +22,7 @@ library(forcats)
 library(firatheme)
 library(gridExtra)
 library(rsdmx)
+library(dotenv)
 ```
 
 ```{r fonts}
@@ -58,6 +60,8 @@ source("fonts.r")
 # span of data, get the current year
 date <- Sys.Date()
 year_sel <- format(date, "%Y")
+start_date <- floor_date(date - months(12), "month")
+this_month <- floor_date(date, "month")
 
 #
 #
@@ -68,10 +72,10 @@ year_sel <- format(date, "%Y")
 unemp <- get_eurostat('ei_lmhr_m')
 
 unemp_cz <- as.data.table(unemp)
-unemp_cz <- unemp_cz[geo == "CZ" & year(time) >= (as.numeric(year_sel)-1) &  s_adj == "SA" & indic == "LM-UN-T-TOT", ]
+unemp_cz <- unemp_cz[geo == "CZ" & year(TIME_PERIOD) >= (as.numeric(year_sel) - 1) &  s_adj == "SA" & indic == "LM-UN-T-TOT", ]
 
 # select required  columns
-unemp_cz <- unemp_cz[, .(time, value = values, id = 'Eurostat', variable = 'urate')]
+unemp_cz <- unemp_cz[, .(time = TIME_PERIOD, value = values, id = 'Eurostat', variable = 'urate')]
 
 #
 #
@@ -80,57 +84,60 @@ unemp_cz <- unemp_cz[, .(time, value = values, id = 'Eurostat', variable = 'urat
 # primarily: 'https://www.mpsv.cz/documents/20142/1384563/stat-yyyy-mm.zip
 # alternatively: 'https://www.mpsv.cz/o/rest/statistiky/nezamestnanost/yyyy/mm'
 # 
+# celé špatně - již nefční linky MPSV, nově přes otevřená data
+# historicky potřeba scrape
 
-# create the link base on current date
-last_month <- paste0('0',month(date)-1)
-mpsv_data_link <- paste0('https://www.mpsv.cz/documents/20142/1384563/stat-',year_sel,'-',last_month,'.zip')
-mpsv_file_name <- paste0('4. Nez',last_month, substr(year_sel,3,4),'h.xlsx')
 
-# try downloading data, if available and contains new value, then update the mpsv_data.csv
-tryCatch({download.file(mpsv_data_link, here('mpsv_data.zip'), mode='wb')
-          unzip('mpsv_data.zip', files = paste0('4. Nez',last_month, substr(year_sel,3,4),'h.xlsx'), exdir=here())
-          u_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="AD101:AD101", col_names = F)
-          vacancies_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="X101:X101", col_names = F)
-          unemployed_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="J101:J101", col_names = F)
+# # create the link base on current date
+# last_month <- paste0('0', month(date) - 1)
+# mpsv_data_link <- paste0('https://www.mpsv.cz/documents/20142/1384563/stat-',year_sel,'-',last_month,'.zip')
+# mpsv_file_name <- paste0('4. Nez', last_month, substr(year_sel,3,4),'h.xlsx')
+
+# # try downloading data, if available and contains new value, then update the mpsv_data.csv
+# tryCatch({download.file(mpsv_data_link, here('mpsv_data.zip'), mode='wb')
+#           unzip('mpsv_data.zip', files = paste0('4. Nez',last_month, substr(year_sel,3,4),'h.xlsx'), exdir=here())
+#           u_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="AD101:AD101", col_names = F)
+#           vacancies_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="X101:X101", col_names = F)
+#           unemployed_mpsv <- read_excel(mpsv_file_name, sheet = 'nuts3', range="J101:J101", col_names = F)
                
-          # if available and contains new value, then add it to the data                  
-          mpsv_data_current <- data.table(read_csv('mpsv_data.csv'))
-          # reformat the date
-          mpsv_data_current[, time := as.Date(time, '%d-%m-%y')]
+#           # if available and contains new value, then add it to the data                  
+#           mpsv_data_current <- data.table(read_csv('mpsv_data.csv'))
+#           # reformat the date
+#           mpsv_data_current[, time := as.Date(time, '%d-%m-%y')]
 
-          unem_mpsv <- data.table(time = as.Date(paste0('01-',last_month,'-',year_sel), '%d-%m-%y'), u_mpsv, vacancies_mpsv, unemployed_mpsv, id = 'MPSV') # id for identification in figures
-          setnames(unem_mpsv, c('time','urate','Vacancies','Unemployed','id'))
+#           unem_mpsv <- data.table(time = as.Date(paste0('01-',last_month,'-',year_sel), '%d-%m-%y'), u_mpsv, vacancies_mpsv, unemployed_mpsv, id = 'MPSV') # id for identification in figures
+#           setnames(unem_mpsv, c('time','urate','Vacancies','Unemployed','id'))
 
-          ifelse(unem_mpsv$time > max(mpsv_data_current$time), assign('mpsv_data', rbind(mpsv_data_current, unem_mpsv)), assign('mpsv_data', mpsv_data_current))
-          write.csv(mpsv_data, 'mpsv_data.csv', row.names = F)
-          },
-          error = function(err){
-          print('The data for last month is not yet available')
-          },
-          warning = function(war){
-          print('The data for last month is not yet available')
-          })
+#           ifelse(unem_mpsv$time > max(mpsv_data_current$time), assign('mpsv_data', rbind(mpsv_data_current, unem_mpsv)), assign('mpsv_data', mpsv_data_current))
+#           write.csv(mpsv_data, 'mpsv_data.csv', row.names = F)
+#           },
+#           error = function(err){
+#           print('The data for last month is not yet available')
+#           },
+#           warning = function(war){
+#           print('The data for last month is not yet available')
+#           })
 
-# read the basic data
-mpsv_data <- data.table(read_csv('mpsv_data.csv'))
-# reformat the date
-mpsv_data[, time := as.Date(time, '%d-%m-%y')]
+# # read the basic data
+# mpsv_data <- data.table(read_csv('mpsv_data.csv'))
+# # reformat the date
+# mpsv_data[, time := as.Date(time, '%d-%m-%y')]
 
-# melt the data to long format
-mpsv_data_long <- data.table(melt(mpsv_data, id = c('time','id')))
+# # melt the data to long format
+# mpsv_data_long <- data.table(melt(mpsv_data, id = c('time','id')))
 
-#
-#
-# merge the unemployment together
-unemp_final <- rbind(unemp_cz, mpsv_data_long)
+# #
+# #
+# # merge the unemployment together
+# unemp_final <- rbind(unemp_cz, mpsv_data_long)
 
 # unemployment rates
-fig_urate <- ggplot(unemp_final[variable == 'urate',], aes(x = time, y = value, colour = id, group = id)) +
-               xlab('') + ylab('') +
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.01, 0.01)), limits = c(min(unemp_cz$time), as.Date('2020-12-01'))) +                       scale_y_continuous(limits = c(1.5,max(mpsv_data$urate)+1)) +
+fig_urate <- ggplot(unemp_cz[variable == 'urate',], aes(x = time, y = value, colour = id, group = id)) +
+               xlab('') + ylab('') + geom_line() + geom_point() +
+               scale_x_date(labels = scales::label_date_short(format = c('%Y','%b','','')), date_breaks = "months", 
+               expand = expansion(c(0.01, 0.01)), limits = c(min(unemp_cz$time), this_month)) + scale_y_continuous(limits = c(1.5,max(unemp_cz$value)+1)) +
                scale_colour_fira(name = element_text("")) + theme_fira() + 
-               theme(legend.position = "bottom", legend.title = element_text(face='bold'),
+               theme(legend.position = "right", legend.title = element_text(face='bold'),
                legend.margin=margin(0,0,0,0),
                legend.box.margin=margin(-10,-10,-10,-10),
                plot.margin = margin(0,5,10,-10),
@@ -138,23 +145,23 @@ fig_urate <- ggplot(unemp_final[variable == 'urate',], aes(x = time, y = value, 
                plot.subtitle = element_text(hjust=0),
                plot.caption = element_text(hjust=0, margin = margin(15,0,-8,0))) + 
                labs(title='Unemployment rate (%)', 
-                    caption = paste0('https://ec.europa.eu/eurostat/web/products-datasets/product?code=ei_lmhr_m\nhttps://www.mpsv.cz/web/cz/mesicni\n','last checked: ', format(date, '%d-%m-%Y')))
+                    caption = paste0('https://ec.europa.eu/eurostat/web/products-datasets/product?code=ei_lmhr_m\n','last checked: ', format(date, '%d-%m-%Y')))
 
 # vacancies and unemployed
-fig_unem <- ggplot(unemp_final[variable %in% c('Vacancies','Unemployed'),], aes(x = time, y = value, 
-                                                                                colour = variable, 
-                                                                                group = variable)) +
-               xlab('') + ylab('') +
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.01, 0.01)), limits = c(min(unemp_cz$time), as.Date('2020-12-01'))) +                       scale_y_continuous(labels = scales::label_comma()) +
-               scale_colour_fira(name = element_text("")) + theme_fira() + 
-               theme(legend.position = "bottom", legend.title = element_text(face='bold'), 
-               plot.title =  element_text(hjust = 0), legend.margin=margin(0,0,0,0),
-               legend.box.margin=margin(-10,-10,-10,-10),
-               plot.margin = margin(0,5,10,-5),
-               plot.subtitle = element_text(hjust=0), 
-               plot.caption = element_text(hjust=0, margin = margin(15,0,-8,0))) + 
-               labs(title = 'Unemployment and vacancies', caption = paste0('https://www.mpsv.cz/web/cz/mesicni\n','last checked: ', format(date, '%d-%m-%Y')))
+# fig_unem <- ggplot(unemp_final[variable %in% c('Vacancies','Unemployed'),], aes(x = time, y = value, 
+#                                                                                 colour = variable, 
+#                                                                                 group = variable)) +
+#                xlab('') + ylab('') +
+#                scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
+#                expand = expansion(c(0.01, 0.01)), limits = c(min(unemp_cz$time), as.Date('2020-12-01'))) +                       scale_y_continuous(labels = scales::label_comma()) +
+#                scale_colour_fira(name = element_text("")) + theme_fira() + 
+#                theme(legend.position = "bottom", legend.title = element_text(face='bold'), 
+#                plot.title =  element_text(hjust = 0), legend.margin=margin(0,0,0,0),
+#                legend.box.margin=margin(-10,-10,-10,-10),
+#                plot.margin = margin(0,5,10,-5),
+#                plot.subtitle = element_text(hjust=0), 
+#                plot.caption = element_text(hjust=0, margin = margin(15,0,-8,0))) + 
+#                labs(title = 'Unemployment and vacancies', caption = paste0('https://www.mpsv.cz/web/cz/mesicni\n','last checked: ', format(date, '%d-%m-%Y')))
 
 #
 #
@@ -182,9 +189,9 @@ categ_txt <- c('Overall (NACE I,J,H,L,M,N)','Retail','Accommodation','Food and b
                'Transportation','Real estate','Administrative','Professional, technical, and research')
 categ_concat <- data.table(categ, categ_txt)
 
-serv_current <- services[rok >= as.numeric(year_sel) & ocisteni_kod == 'O' & is.na(oceneni_kod) &
-                      cznace_kod %in% categ_concat$categ & casz_kod == 'C',]
 
+serv_current <- services[as_date(paste0(services$mesic, "-", services$rok), format = "%m-%Y") >= start_date & ocisteni_kod == 'O' & is.na(oceneni_kod) &
+                      cznace_kod %in% categ_concat$categ & casz_kod == 'C',]
 #                
 #
 
@@ -232,7 +239,7 @@ fig_sales_serv <- ggplot(serv_current, aes(x = time, y= hodnota, group = categ_f
 industry <- data.table(czso_get_table('150196'))
 
 # filter the specific entries from data, same period previous year index, industry overall, and automotive
-industry_sel <- industry[cznace_kod %in% c('05350001','29') & rok == as.numeric(year_sel) & casz_kod == 'C',]
+industry_sel <- industry[cznace_kod %in% c('05350001','29') & as_date(paste0(industry$mesic, "-", industry$rok), format = "%m-%Y") >= start_date & casz_kod == 'C',]
 
 # only keep required columns
 ind_current <- industry_sel[, .(hodnota, mesic, rok, categ = cznace_kod)]
@@ -266,7 +273,7 @@ fig_prod_ind <- ggplot(ind_current, aes(x = time, y= hodnota, group = categ_fact
 construction <- data.table(czso_get_table('200075'))
 
 # filter the specific entries from dasta, same period previous year index, industry overall, and automotive
-construction_sel <- construction[rok == as.numeric(year_sel) & casz_kod == 'C' & ocisteni_kod == 'P',]
+construction_sel <- construction[as_date(paste0(construction$mesic, "-", construction$rok), format = "%m-%Y") >= start_date & casz_kod == 'C' & ocisteni_kod == 'P',]
 
 # only keep required columns
 cons_current <- construction_sel[, .(hodnota, mesic, rok, stavprace_kod)]
@@ -312,28 +319,37 @@ cpi_data[, time := as.Date(paste0(TIME_PERIOD,'-01'), '%Y-%m-%d')] # adjust date
 cpi_data <- cpi_data[, .(time, value = as.numeric(OBS_VALUE))]
 
 # compute inflation
-cpi_data[, value := round(grate(value, k = 12)*100,1)]
+cpi_data[, value := round(grate(value, k = 12)*100, 1)]
 
-cpi_data <- cpi_data[year(time) == year_sel,]
-cpi_data <- cpi_data[,.(time, value, type="CPI inflation")]
+# only select the latest 12 observations
+cpi_data <- cpi_data[time >= start_date,]
+cpi_data <- cpi_data[, .(time, value, type = "CPI inflation")]
 
-#
-#
+# =============================================================================
+# CORE INFLATION
+# =============================================================================
 
-# Core inflation
-# adjust month
-mon <- ifelse(nchar(month(date)) == 1, paste0('0', month(date)), month(date))
+# define request
+core_infl_req <- request(paste0("https://www.cnb.cz/aradb/api/v1/data?indicator_id_list=SCPIMZM09YOYPECNA&months_before=12&decimal_separator=point&decimals=2&delimiter=comma&api_key=", Sys.getenv('cnb_api_key')))
 
-# create link for cnb data
-core_link_cnb <- paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.VYSTUP?p_period=1&p_sort=2&p_des=50&p_sestuid=21727&p_uka=9&p_strid=ACBAA&p_od=',year(date),'01','&p_do=',year(date),mon,'&p_lang=CS&p_format=2&p_decsep=.')
+# request
+resp <- core_infl_req |> 
+  req_perform() |>
+  resp_body_string(encoding = 'utf-8')
 
-core_infl_data <- data.table(read.table(core_link_cnb, header = T, sep='|')) # read the data
+# transform response data into data table
+core_infl_data <- as.data.table(read.table(text = resp, header = T, sep = ','))
 
-setnames(core_infl_data, c('time','value')) # adjust column names
-# adjust date
-core_infl_data[, time := as.Date(time, format = '%d.%m.%Y')] # adjust date
-core_infl_data[, time := as.Date(paste(year(time),month(time), '01' , sep='-'))] # adjust to beginning of the month for consistency
-core_infl_data[, type := 'Core inflation']
+# create a corrected datetime
+core_infl_data[, time := as.Date(as.character(period), format = '%Y%m%d')] 
+
+# adjust to beginning of the month
+core_infl_data[, time := as_date(floor_date(time, "month"))] 
+
+# add series name and drop redundant columns
+core_infl_data[, type := 'Core inflation'][
+  , c('indicator_id','snapshot_id', 'period') := NULL
+]
 
 # bind the CPI and core data together
 infl <- rbind(cpi_data, core_infl_data)
@@ -345,8 +361,8 @@ infl <- infl[!is.na(value),] # drop NA observations
 # figures
 fig_infl <- ggplot(infl, aes(x = time, y = value, group = type, colour = type)) + geom_line() + geom_point() +
                xlab('') + ylab('') +
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.05, 0.05)), limits = c(min(cpi_data$time), as.Date('2020-12-01'))) +
+               scale_x_date(labels = scales::label_date_short(format = c('%Y','%b','','')), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(cpi_data$time), this_month)) +
                scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
                scale_colour_fira(name = element_text("")) + theme_fira() + 
                theme(legend.position ='bottom', legend.margin=margin(0,0,0,0),
@@ -354,7 +370,7 @@ fig_infl <- ggplot(infl, aes(x = time, y = value, group = type, colour = type)) 
                plot.margin = margin(0,5,10,-5), legend.title = element_text(face='bold'), 
                plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), 
                plot.caption = element_text(hjust=0)) +
-               labs(title='Inflation', subtitle='Base = same period previous year', caption = paste0('https://vdb.czso.cz/pll/eweb/sdmx.getXML?d=CPI\n','https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=21727&\np_strid=ACBAA&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
+               labs(title='Inflation', subtitle='Base = same period previous year', caption = paste0('https://vdb.czso.cz/pll/eweb/sdmx.getXML?d=CPI\n', 'https://www.cnb.cz/arad/, Data series SCPIMZM05YOYPECNA\n', ', last checked: ', format(date, '%d-%m-%Y')))
 
 #
 #
@@ -370,13 +386,13 @@ ppi_data[, time := as.Date(paste0(TIME_PERIOD,'-01'), '%Y-%m-%d')] # adjust date
 ppi_data <- ppi_data[, .(time, value = as.numeric(OBS_VALUE))]
 
 # compute inflation
-ppi_data[, value := round(grate(value, k = 12)*100,1)]
+ppi_data[, value := round(grate(value, k = 12) * 100,1)]
 
-ppi_data <- ppi_data[year(time) == year_sel,]
+ppi_data <- ppi_data[time >= start_date, ]
 
 fig_infl_ppi <- ggplot(ppi_data, aes(x = time, y = value)) + geom_line() + geom_point() + xlab('') + ylab('') + 
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.05, 0.05)), limits = c(min(ppi_data$time), as.Date('2020-12-01'))) +
+               scale_x_date(labels = scales::label_date_short(format = c('%Y','%b','','')), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(ppi_data$time), this_month)) +
                scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
                scale_colour_fira(name = element_text("")) + theme_fira() + 
                theme(legend.position ='bottom', plot.margin = margin(0,5,10,-5), 
@@ -388,128 +404,219 @@ fig_infl_ppi <- ggplot(ppi_data, aes(x = time, y = value)) + geom_line() + geom_
 #
 #
 
-# Loans from CNB
-# adjust month
-mon <- ifelse(nchar(month(date)) == 1, paste0('0', month(date)), month(date))
+# =============================================================================
+# LOANS
+# =============================================================================
+# source: ARAD CNB
+# series SUCM101211XXX801201 - non-performing loans share households
+# series SUCM100311XXX801201 - non-performing loans share NFI
+# series SMIRSTOBUVMOBJ301CZK1 - HH + NISD loans volume 
+# series SMIRSTOBUVMOBJ322CZK1 - HH + NISD consumer loans volume
+# series SMIRSTOBUVMOBJ305CZK1 - HH + NISD housing loans volume
+# series SMIRNOOBUVMOBJ305CZK013111 - HH + NISD new loans housing
+# series SMIRNOOBUVMOBJ304CZK013111 - HH + NISD new consumer loans
+# series SMIRSTOBUVMOBJ201CZK1 - NFI loans volume
+# series SMIRNOOBUVMOBJ237CZK013111 - NFI new loans CZK
+# series SMIRNOOBUVMIRS237CZK013111 - NFI new loans CZK - interest rate
 
-loans_nfi_link_cnb <- paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.VYSTUP?p_period=1&p_sort=2&p_des=50&p_sestuid=22023&p_uka=7%2C8%2C9&p_strid=AABBAE&p_od=',as.numeric(year(date))-1,'12','&p_do=',year(date),mon,'&p_lang=CS&p_format=2&p_decsep=.')
-loans_hh_link_cnb <- paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.VYSTUP?p_period=1&p_sort=2&p_des=50&p_sestuid=22023&p_uka=16%2C17%2C18&p_strid=AABBAE&p_od=',as.numeric(year(date))-1,'12','&p_do=',year(date),mon,'&p_lang=CS&p_format=2&p_decsep=.')
+# define request
+loans_req <- request(paste0("https://www.cnb.cz/aradb/api/v1/data?indicator_id_list=SMIRSTOBUVMOBJ301CZK1,SMIRSTOBUVMOBJ322CZK1,SMIRSTOBUVMOBJ305CZK1,SMIRSTOBUVMOBJ305CZK1,SMIRNOOBUVMOBJ305CZK013111,SMIRNOOBUVMOBJ304CZK013111,SMIRNOOBUVMOBJ237CZK013111,SMIRNOOBUVMIRS237CZK013111,SMIRSTOBUVMOBJ201CZK1,SUCM100111XXX801201,SUCM100311XXX801201&months_before=25&decimal_separator=point&decimals=2&delimiter=comma&api_key=", Sys.getenv('cnb_api_key')))
+
+# request
+resp <- loans_req |> 
+  req_perform() |>
+  resp_body_string(encoding = 'utf-8')
+
+# transform response data into data table
+loans_dt <- as.data.table(read.table(text = resp, header = T, sep = ','))
+
+# create a corrected datetime
+loans_dt[, time := as.Date(as.character(period), format = '%Y%m%d')] 
+
+# adjust to beginning of the month and add type column (NFI, HHs)
+loans_dt[, time := as_date(floor_date(time, "month"))][
+  , type := ifelse(indicator_id %in% c('SMIRSTOBUVMOBJ201CZK1','SUCM100311XXX801201','SMIRNOOBUVMOBJ237CZK013111','SMIRNOOBUVMIRS237CZK013111'), 'Non-financial institutions', 'Households')
+] 
+
+# # add series name and drop redundant columns
+# loans_dt[, type := 'Core inflation'][
+#   , c('indicator_id','snapshot_id', 'period') := NULL
+# ]
+
+# transform the data into wide format
+loans_dt_wide <- dcast(loans_dt, time + type ~ indicator_id, value.var = 'value')
+
+# compute m-o-m growth rates for loans
+loans_dt_wide[, nfi_loans_g := round(grate(SMIRSTOBUVMOBJ201CZK1, k = 12) * 100, 2), by = c('type')]
+loans_dt_wide[, hh_loans_g := round(grate(SMIRSTOBUVMOBJ301CZK1, k = 12) * 100, 2), by = c('type')]
+loans_dt_wide[, hh_cons_loans_g := round(grate(SMIRSTOBUVMOBJ322CZK1, k = 12) * 100, 2), by = c('type')]
+loans_dt_wide[, hh_hous_loans_g := round(grate(SMIRSTOBUVMOBJ305CZK1, k = 12) * 100, 2), by = c('type')]
+
+# drop redundant columns and adjust colnames
+loans_dt_wide <- loans_dt_wide[, c('SMIRSTOBUVMOBJ201CZK1','SMIRSTOBUVMOBJ301CZK1','SMIRSTOBUVMOBJ322CZK1','SMIRSTOBUVMOBJ305CZK1') := NULL]
+setnames(loans_dt_wide, c('SMIRNOOBUVMIRS237CZK013111','SMIRNOOBUVMOBJ237CZK013111','SMIRNOOBUVMOBJ304CZK013111','SMIRNOOBUVMOBJ305CZK013111','SUCM100111XXX801201','SUCM100311XXX801201'), 
+                        c('nfi_new_loans_ir','nfi_new_loans','hh_new_cons_loans','hh_new_hous_loans','npl_nfi','npl_hh'))
+
+# melt data into long format
+loans_dt_long <- data.table(melt(loans_dt_wide, id = c('time','type')))
+
+# drop NA values
+loans_dt_long <- loans_dt_long[!is.na(value), ]
+
+# take only last 12 periods
+loans_dt_long <- loans_dt_long[time >= start_date - months(2), ]
+
+# loans_nfi_data <- data.table(read.table(loans_nfi_link_cnb, header = T, sep='|')) # read the data
+# loans_hh_data <- data.table(read.table(loans_hh_link_cnb, header = T, sep='|')) # read the data
+
+# setnames(loans_nfi_data, c('time','loans','npl','npl_share')) # adjust column names
+# setnames(loans_hh_data, c('time','loans','npl','npl_share')) # adjust column names
+
+# loans_nfi_data[, type := 'Non-financial institutions']
+# loans_hh_data[, type := 'Households']
 
 
-loans_nfi_data <- data.table(read.table(loans_nfi_link_cnb, header = T, sep='|')) # read the data
-loans_hh_data <- data.table(read.table(loans_hh_link_cnb, header = T, sep='|')) # read the data
+# loans_nfi_data[, time := as.Date(time, format = '%d.%m.%Y')] # adjust date
+# loans_nfi_data[, time := as.Date(paste(year(time),month(time), '01' , sep='-'))] # adjust to beginning of the month for consistency
+# loans_hh_data[, time := as.Date(time, format = '%d.%m.%Y')] # adjust date
+# loans_hh_data[, time := as.Date(paste(year(time),month(time), '01' , sep='-'))] # adjust to beginning of the month for consistency
 
-setnames(loans_nfi_data, c('time','loans','npl','npl_share')) # adjust column names
-setnames(loans_hh_data, c('time','loans','npl','npl_share')) # adjust column names
+# # compute loan growth
+# loans_nfi_data <- loans_nfi_data[order(time),]
+# loans_nfi_data[, loan_growth := grate(loans, k=1)*100]
 
-loans_nfi_data[, type := 'Non-financial institutions']
-loans_hh_data[, type := 'Households']
+# loans_hh_data <- loans_hh_data[order(time),]
+# loans_hh_data[, loan_growth := grate(loans, k=1)*100]
 
+# # bind the data
+# loans_data <- rbind(loans_hh_data, loans_nfi_data)
 
-loans_nfi_data[, time := as.Date(time, format = '%d.%m.%Y')] # adjust date
-loans_nfi_data[, time := as.Date(paste(year(time),month(time), '01' , sep='-'))] # adjust to beginning of the month for consistency
-loans_hh_data[, time := as.Date(time, format = '%d.%m.%Y')] # adjust date
-loans_hh_data[, time := as.Date(paste(year(time),month(time), '01' , sep='-'))] # adjust to beginning of the month for consistency
-
-# compute loan growth
-loans_nfi_data <- loans_nfi_data[order(time),]
-loans_nfi_data[, loan_growth := grate(loans, k=1)*100]
-
-loans_hh_data <- loans_hh_data[order(time),]
-loans_hh_data[, loan_growth := grate(loans, k=1)*100]
-
-# bind the data
-loans_data <- rbind(loans_hh_data, loans_nfi_data)
-
-# drop NAs
-loans_data <- loans_data[!is.na(loan_growth),]
+# # drop NAs
+# loans_data <- loans_data[!is.na(loan_growth),]
 
 # plot loan growth data
-fig_loan_growth <- ggplot(loans_data, aes(x = time, y = loan_growth, group = type, colour = type)) + geom_line() + geom_point() +              xlab('') + ylab('') + 
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_data$time), as.Date('2020-12-01'))) +
+fig_loan_growth <- ggplot(loans_dt_long[variable %in% c('nfi_loans_g','hh_loans_g'), ], aes(x = time, y = value, group = type, colour = type)) + geom_line() + geom_point() + xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date_short(format = c('%Y','%b','','')), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_dt_long$time), this_month)) +
                scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
                scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
                legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
-               labs(title='Loan growth (%)', subtitle='Base = previous month', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=22023\n&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
+               labs(title='Loan growth (%)', subtitle='Base = same month previous year', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRSTOBUVMOBJ201CZK1, SMIRSTOBUVMOBJ301CZK1\n', 'last checked: ', format(date, '%d-%m-%Y')))
 
 # plot npl data
-fig_npls <- ggplot(loans_data, aes(x = time, y = npl_share, group = type, colour = type)) + geom_line() + geom_point() +                       xlab('') + ylab('') + 
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_data$time), as.Date('2020-12-01'))) +
-               scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
+fig_npls <- ggplot(loans_dt_long[variable %in% c('npl_nfi','npl_hh'), ], aes(x = time, y = value, group = type, colour = type)) + geom_line() + geom_point() + xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date_short(format = c('%Y','%b','','')), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_dt_long$time), this_month)) +
+               scale_y_continuous(labels = scales::label_number(accuracy=0.1)) + # facet_grid(type ~ .) +
                scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
                legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
-               labs(title='Non-performing loans', subtitle='% share of total loans', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=22023\n&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
+               labs(title='Non-performing loans', subtitle='% share of total loans', caption = paste0('https://www.cnb.cz/arad/\ndata series: SUCM101211XXX801201, SUCM100311XXX801201\n', 'last checked: ', format(date, '%d-%m-%Y')))
+
+# plot nfi new loans ir
+fig_nfi_ir <- ggplot(loans_dt_long[variable %in% c('nfi_new_loans_ir'), ], aes(x = time, y = value, group = type, colour = type)) + geom_line() + geom_point() + xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date_short(format = c('%Y','%b','','')), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_dt_long$time), this_month)) +
+               scale_y_continuous(labels = scales::label_number(accuracy=0.1), limits = c(min(loans_dt_long[variable %in% c('nfi_new_loans_ir'), ]$value)-1, max(loans_dt_long[variable %in% c('nfi_new_loans_ir'), ]$value)+1)) + # facet_grid(type ~ .) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+               legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+               labs(title='Interest rate on new loans (NFIs)', subtitle='%', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRNOOBUVMIRS237CZK013111\n', 'last checked: ', format(date, '%d-%m-%Y')))
+
+# plot nfi new loans ir
+fig_nfi_new_loans <- ggplot(loans_dt_long[variable %in% c('nfi_new_loans'), ], aes(x = time, y = value/1000000000, group = type, colour = type)) + geom_line() + geom_point() + xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date_short(format = c('%Y','%b','','')), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_dt_long$time), this_month)) +
+               scale_y_continuous(labels = scales::label_number(accuracy=1), limits = c(min(loans_dt_long[variable %in% c('nfi_new_loans'), ]$value)/10^9-3, max(loans_dt_long[variable %in% c('nfi_new_loans'), ]$value)/10^9+3)) + # facet_grid(type ~ .) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+               legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+               labs(title='Non-financial institutions new loans (bn. CZK)', subtitle='', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRNOOBUVMOBJ237CZK013111\n', 'last checked: ', format(date, '%d-%m-%Y')))
+
+# consumer and housing loans growth y-o-y - households
+fig_hh_loan_growth_det <- ggplot(loans_dt_long[variable %in% c('hh_cons_loans_g','hh_hous_loans_g'), ], aes(x = time, y = value, group = variable, colour = variable)) + geom_line() + geom_point() + xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date_short(format = c("%Y", "%b", "", "")), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_dt_long$time), this_month)) +
+               scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
+               scale_colour_fira(name = element_text(""), labels = c('Consumer loans', 'Housing loans')) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+               legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+               labs(title='Households loan growth (%)', subtitle='Base = same month previous year', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRSTOBUVMOBJ201CZK1, SMIRSTOBUVMOBJ301CZK1\n', 'last checked: ', format(date, '%d-%m-%Y')))
+
+# new consumer and housing loans - households
+fig_hh_new_loans_det <- ggplot(loans_dt_long[variable %in% c('hh_new_cons_loans','hh_new_hous_loans'), ], aes(x = time, y = value/10^9, group = variable, colour = variable)) + geom_line() + geom_point() + xlab('') + ylab('') + 
+               scale_x_date(labels = scales::label_date_short(format = c("%Y", "%b", "", "")), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_dt_long$time), this_month)) +
+               scale_y_continuous(labels = scales::label_number(accuracy=1)) +
+               scale_colour_fira(name = element_text(""), labels = c('Consumer loans', 'Housing loans')) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+               legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+               labs(title='Households new loans (bn. CZK)', subtitle='', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRNOOBUVMOBJ304CZK013111, SMIRNOOBUVMOBJ305CZK013111\n', 'last checked: ', format(date, '%d-%m-%Y')))
 
 #
 #
 
 # Loans moratoriums (COVID), data from CNB
 # adjust month
-mon <- format(Sys.Date(), format = '%m')
-day <- format(Sys.Date(), format = '%d')
+# mon <- format(Sys.Date(), format = '%m')
+# day <- format(Sys.Date(), format = '%d')
 
-morat_file_cnb_link <- paste0('https://www.cnb.cz/export/sites/cnb/cs/dohled-financni-trh/.galleries/souhrnne_informace_fin_trhy/statistika_odkladu_splatek_a_uveru_v_programech_covid/tydenni/',as.numeric(year(date)),mon,day,'_statistika_covid.xlsx')
+# morat_file_cnb_link <- paste0('https://www.cnb.cz/export/sites/cnb/cs/dohled-financni-trh/.galleries/souhrnne_informace_fin_trhy/statistika_odkladu_splatek_a_uveru_v_programech_covid/tydenni/',as.numeric(year(date)),mon,day,'_statistika_covid.xlsx')
 
-morat_file_name <- paste0(as.numeric(year(date)),mon,day,'_statistika_covid.xlsx')
+# morat_file_name <- paste0(as.numeric(year(date)),mon,day,'_statistika_covid.xlsx')
 
-# try downloading data, if available and contains new value, then update the data on moratoriums
-tryCatch({download.file(morat_file_cnb_link, here(morat_file_name), mode='wb')
-          morat_hh <- read_excel(morat_file_name, sheet = 'Moratorium', range="G34:G34", col_names = F)
-          morat_other_hh <- read_excel(morat_file_name, sheet = 'Moratorium', range="G63:G63", col_names = F)
-          morat_nfi <- read_excel(morat_file_name, sheet = 'Moratorium', range="G9:G9", col_names = F)
-          morat_other_nfi <- read_excel(morat_file_name, sheet = 'Moratorium', range="G38:G38", col_names = F)
-          morat_time <- read_excel(morat_file_name, sheet = 'Moratorium', range="B7:B7", col_names = 'time')
+# # try downloading data, if available and contains new value, then update the data on moratoriums
+# tryCatch({download.file(morat_file_cnb_link, here(morat_file_name), mode='wb')
+#           morat_hh <- read_excel(morat_file_name, sheet = 'Moratorium', range="G34:G34", col_names = F)
+#           morat_other_hh <- read_excel(morat_file_name, sheet = 'Moratorium', range="G63:G63", col_names = F)
+#           morat_nfi <- read_excel(morat_file_name, sheet = 'Moratorium', range="G9:G9", col_names = F)
+#           morat_other_nfi <- read_excel(morat_file_name, sheet = 'Moratorium', range="G38:G38", col_names = F)
+#           morat_time <- read_excel(morat_file_name, sheet = 'Moratorium', range="B7:B7", col_names = 'time')
           
-          loans_hh <- read_excel(morat_file_name, sheet = 'Moratorium_podily', range="B6:B6", col_names = 'loans_hh')
-          loans_nfi <- read_excel(morat_file_name, sheet = 'Moratorium_podily', range="F6:F6", col_names = 'loans_nfi')
+#           loans_hh <- read_excel(morat_file_name, sheet = 'Moratorium_podily', range="B6:B6", col_names = 'loans_hh')
+#           loans_nfi <- read_excel(morat_file_name, sheet = 'Moratorium_podily', range="F6:F6", col_names = 'loans_nfi')
           
-          # if available and contains new value, then add it to the data                  
-          morat_data_current <- data.table(read_csv('morat_data.csv'))
+#           # if available and contains new value, then add it to the data                  
+#           morat_data_current <- data.table(read_csv('morat_data.csv'))
           
-          # reformat the date
-          morat_data_current[, time := as.Date(time, '%d-%m-%y')]
+#           # reformat the date
+#           morat_data_current[, time := as.Date(time, '%d-%m-%y')]
           
-          morat <- data.table(time = as.Date(morat_time$time), morat_hh = morat_hh+morat_other_hh, morat_nfi = morat_nfi + morat_other_nfi, loans_hh*1000, loans_nfi*1000) # id for identification in figures
-          setnames(morat, c('time','morat_hh','morat_nfi','loans_hh','loans_nfi'))
-          morat[, morat_sh_hh := morat_hh/loans_hh]
-          morat[, morat_sh_nfi := morat_nfi/loans_nfi]
+#           morat <- data.table(time = as.Date(morat_time$time), morat_hh = morat_hh+morat_other_hh, morat_nfi = morat_nfi + morat_other_nfi, loans_hh*1000, loans_nfi*1000) # id for identification in figures
+#           setnames(morat, c('time','morat_hh','morat_nfi','loans_hh','loans_nfi'))
+#           morat[, morat_sh_hh := morat_hh/loans_hh]
+#           morat[, morat_sh_nfi := morat_nfi/loans_nfi]
 
-          ifelse(morat$time > max(morat_data_current$time), assign('morat_data', rbind(morat, morat_data_current)), assign('morat_data', morat_data_current))
-          write.csv(morat_data, 'morat_data.csv', row.names = F)
-          },
-          error = function(err){
-          print('The data for the week is not yet available')
-          },
-          warning = function(war){
-          print('The data for the week is not yet available')
-          })
+#           ifelse(morat$time > max(morat_data_current$time), assign('morat_data', rbind(morat, morat_data_current)), assign('morat_data', morat_data_current))
+#           write.csv(morat_data, 'morat_data.csv', row.names = F)
+#           },
+#           error = function(err){
+#           print('The data for the week is not yet available')
+#           },
+#           warning = function(war){
+#           print('The data for the week is not yet available')
+#           })
 
-# adjust the moratorium data
-morat_data <- data.table(read_csv('morat_data.csv'))
-morat_long <- melt(morat_data[, j = .(time,morat_sh_hh,morat_sh_nfi)], id = c('time'), variable.name = 'type', value.name = 'value')
-morat_long[type == 'morat_sh_nfi', type := 'Non-financial institutions']
-morat_long[type == 'morat_sh_hh', type := 'Households']
+# # adjust the moratorium data
+# morat_data <- data.table(read_csv('morat_data.csv'))
+# morat_long <- melt(morat_data[, j = .(time,morat_sh_hh,morat_sh_nfi)], id = c('time'), variable.name = 'type', value.name = 'value')
+# morat_long[type == 'morat_sh_nfi', type := 'Non-financial institutions']
+# morat_long[type == 'morat_sh_hh', type := 'Households']
 
-# plot loan growth data
-fig_morat <- ggplot(morat_long, aes(x = time, y = value*100, group = type, colour = type)) + geom_line() + geom_point() +              xlab('') + ylab('') + 
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months",
-               expand = expansion(c(0.05, 0.05)), limits = c(min(morat_long$time), as.Date('2020-12-01'))) +
-               scale_y_continuous(labels = scales::label_number(accuracy=1)) +
-               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
-               legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
-               labs(title='Loans in moratorium', subtitle='% share of loans', caption = paste0('https://www.cnb.cz/cs/dohled-financni-trh/souhrnne-informace-fin-trhy/statistika-odkladu-splatek-a-uveru-v-programech-covid/\n','last checked: ', format(date, '%d-%m-%Y')))
+# # plot loan growth data
+# fig_morat <- ggplot(morat_long, aes(x = time, y = value*100, group = type, colour = type)) + geom_line() + geom_point() +              xlab('') + ylab('') + 
+#                scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months",
+#                expand = expansion(c(0.05, 0.05)), limits = c(min(morat_long$time), as.Date('2020-12-01'))) +
+#                scale_y_continuous(labels = scales::label_number(accuracy=1)) +
+#                scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+#                legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+#                labs(title='Loans in moratorium', subtitle='% share of loans', caption = paste0('https://www.cnb.cz/cs/dohled-financni-trh/souhrnne-informace-fin-trhy/statistika-odkladu-splatek-a-uveru-v-programech-covid/\n','last checked: ', format(date, '%d-%m-%Y')))
 
-# plot npl data
-fig_npls <- ggplot(loans_data, aes(x = time, y = npl_share, group = type, colour = type)) + geom_line() + geom_point() +                       xlab('') + ylab('') + 
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.05, 0.05)), limits = c(min(loans_data$time), as.Date('2020-12-01'))) +
-               scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
-               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
-               legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
-               labs(title='Non-performing loans', subtitle='% share of total loans', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=22023\n&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
+# # plot npl data
+# fig_npls <- ggplot(loans_data, aes(x = time, y = npl_share, group = type, colour = type)) + geom_line() + geom_point() +                       xlab('') + ylab('') + 
+#                scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
+#                expand = expansion(c(0.05, 0.05)), limits = c(min(loans_data$time), as.Date('2020-12-01'))) +
+#                scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
+#                scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+#                legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+#                labs(title='Non-performing loans', subtitle='% share of total loans', caption = paste0('https://www.cnb.cz/cnb/STAT.ARADY_PKG.PARAMETRY_SESTAVY?p_sestuid=22023\n&p_strid=AABBAE&p_lang=CS\n','last checked: ', format(date, '%d-%m-%Y')))
 ```
+
 
 <!-- # Macroeconomic dashboard - Czech Republic -->
 
@@ -523,20 +630,20 @@ This dashboard aims to provide basic macroeconomic data for the Czech Republic. 
 
 ```{r, echo = FALSE, out.width='100%', out.height='100%'}
 fig_sales_serv + geom_line() + geom_point() + xlab('') + ylab('') + 
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.05, 0.05)), limits = c(min(serv_current$time), as.Date('2020-12-01'))) +
+               scale_x_date(labels = scales::label_date_short(format = c('%Y','%b','','')), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(serv_current$time), this_month)) +
                scale_y_continuous(breaks = scales::breaks_width(20))+
-               scale_colour_fira(name = element_text("")) + theme_fira() + theme(plot.margin = margin(0,5,10,-5), legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0),
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.position = "bottom", plot.margin = margin(0,5,10,-5), legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0),
                                                                                  plot.caption = element_text(hjust=0)) +
                facet_wrap(~plot) + labs(title='Sales in services', subtitle='Monthly index, base = same period previous year', caption = paste0('https://vdb.czso.cz/vdbvo2/faces/index.jsf?page=vystup-objekt-parametry&pvo=SLU03-A&sp=A&skupId=1877&pvokc=&katalog=32025&z=T\n','last checked: ', format(date, '%d-%m-%Y')))
 ```
 
-\ 
+\
 
 ```{r, echo = FALSE, out.width='100%', out.height='100%'}
 fig_prod_ind + geom_line() + geom_point() + xlab('') + ylab('') + 
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.05, 0.05)), limits = c(min(ind_current$time), as.Date('2020-12-01'))) +
+               scale_x_date(labels = scales::label_date_short(format = c('%Y','%b','','')), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(ind_current$time), this_month)) +
                scale_colour_fira(name = element_text("")) + theme_fira() + theme(plot.margin = margin(0,5,10,-5), legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
                facet_wrap(~categ_factor) + labs(title='Industry production', subtitle='Monthly index, base = same period previous year', caption = paste0('https://vdb.czso.cz/vdbvo2/faces/index.jsf?page=vystup-objekt-parametry&pvo=PRU01-D&sp=A&skupId=1267&pvokc=&katalog=30835&z=T\n','last checked: ', format(date, '%d-%m-%Y')))
 ```               
@@ -545,18 +652,18 @@ fig_prod_ind + geom_line() + geom_point() + xlab('') + ylab('') +
 
 ```{r, echo = FALSE, out.width='100%', out.height='100%'}
 fig_prod_cons + geom_line() + geom_point() + xlab('') + ylab('') + 
-               scale_x_date(labels = scales::label_date(format = "%m"), date_breaks = "months", 
-               expand = expansion(c(0.05, 0.05)), limits = c(min(ind_current$time), as.Date('2020-12-01'))) +
-               scale_colour_fira(name = element_text("")) + theme_fira() + theme(plot.margin = margin(0,5,10,-5), legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
+               scale_x_date(labels = scales::label_date_short(format = c('%Y','%b','','')), date_breaks = "months", 
+               expand = expansion(c(0.05, 0.05)), limits = c(min(cons_current$time), this_month)) +
+               scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.position = "bottom", plot.margin = margin(0,5,10,-5), legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
                facet_wrap(~plot) + labs(title='Construction production', subtitle='Monthly index, base = same period previous year', caption = paste0('https://vdb.czso.cz/vdbvo2/faces/cs/index.jsf?page=vystup-objekt-parametry&pvo=STA01-D&sp=A&skupId=826&pvokc=&katalog=30836&z=T\n','last checked: ', format(date, '%d-%m-%Y')))
 ```
 
 \ 
 
 ```{r, echo = FALSE, out.width='100%', out.height='100%'}
-plot1 <- fig_urate + geom_line() + geom_point()
-plot2 <- fig_unem + geom_line() + geom_point()
-grid.arrange(plot1, plot2, ncol=2)
+# plot1 <- fig_urate + geom_line() + geom_point()
+# plot2 <- fig_unem + geom_line() + geom_point()
+grid.arrange(fig_urate, ncol=2)
 ```
 
 \ 
@@ -571,145 +678,158 @@ grid.arrange(fig_infl, fig_infl_ppi, ncol=2)
 grid.arrange(fig_loan_growth, fig_npls, ncol=2)
 ```
 
+\
+
 ```{r, echo = FALSE, out.width='100%', out.height='100%'}
-fig_morat
+grid.arrange(fig_nfi_new_loans, fig_nfi_ir, ncol=2)
 ```
+
+\
+
+```{r, echo = FALSE, out.width='100%', out.height='100%'}
+grid.arrange(fig_hh_loan_growth_det, fig_hh_new_loans_det, ncol=2)
+```
+
+<!-- 
+# ```{r, echo = FALSE, out.width='100%', out.height='100%'}
+# fig_morat
+# ```
 
 ## Leading indicators
 
 ## Health
 
-```{r mort-data}
-zmr0 <- czso_get_table("130185", force_redownload = T)
-zmr0$vek_txt[zmr0$vek_txt == '65-74'] <- '65-84'
-zmr0$vek_txt[zmr0$vek_txt == '75-84'] <- '65-84'
+# ```{r mort-data}
+# zmr0 <- czso_get_table("130185", force_redownload = T)
+# zmr0$vek_txt[zmr0$vek_txt == '65-74'] <- '65-84'
+# zmr0$vek_txt[zmr0$vek_txt == '75-84'] <- '65-84'
 
-zmr <- zmr0 %>% 
-  mutate(tyden = as.numeric(tyden),
-         casref_do = as.Date(casref_do),
-         day_sameyear = make_date(1970, month = month(casref_do),
-                                  day = day(casref_do))) %>% 
-  mutate(vek_txt = fct_relevel(vek_txt, "celkem") %>% 
-           fct_recode(Total = "celkem"))
+# zmr <- zmr0 %>% 
+#   mutate(tyden = as.numeric(tyden),
+#          casref_do = as.Date(casref_do),
+#          day_sameyear = make_date(1970, month = month(casref_do),
+#                                   day = day(casref_do))) %>% 
+#   mutate(vek_txt = fct_relevel(vek_txt, "celkem") %>% 
+#            fct_recode(Total = "celkem"))
 
-last_date_fmt <- max(zmr$casref_do)
-today_fmt <- today()
-```
+# last_date_fmt <- max(zmr$casref_do)
+# today_fmt <- today()
+# ```
 
-```{r time-adjusting-load}
-vek <- read_rds("vek.rds")
-vek_ciselnik <- read_rds("vek_ciselnik.rds")
-vek_prevodnik <- read_csv("vek-prevodnik.csv")
-```
-
-
-```{r time-adjusting-age}
-vek_slct <- vek %>%  
-  filter(vuzemi_cis == "97") %>% 
-  filter(is.na(pohlavi_txt)) %>% 
-  left_join(vek_ciselnik %>%
-                    select(vek_kod = CHODNOTA, zkr = ZKRTEXT, 
-                           txt = TEXT, matches("MIN|MAX"))) %>% 
-  select(idhod, hodnota, vek_txt, zkr, txt, casref_do) %>% 
-  left_join(vek_prevodnik) %>% 
-  group_by(casref_do, vek_txt = vek_grp) %>% 
-  summarise(pocet_obyv = sum(hodnota, na.rm = T)) %>% 
-  mutate(rok = year(casref_do)) %>% 
-  replace_na(list(vek_txt = "Total")) %>% 
-  ungroup() %>% 
-  select(-casref_do)
-
-vek_2019 <- vek_slct %>% 
-  filter(rok == 2019, !is.na(vek_txt)) %>% 
-  rename(obyv_2019 = pocet_obyv) %>% 
-  select(-rok)
-
-vek_do2020 <- vek_slct %>% 
-  bind_rows(vek_slct %>% 
-              filter(rok == 2019) %>% 
-              mutate(rok = 2020))
-```
+# ```{r time-adjusting-load}
+# vek <- read_rds("vek.rds")
+# vek_ciselnik <- read_rds("vek_ciselnik.rds")
+# vek_prevodnik <- read_csv("vek-prevodnik.csv")
+# ```
 
 
-```{r time-adjusting-age-adjust}
-zmr_normd <- zmr %>% 
-  filter(vek_txt != "Total") %>% 
-  select(hodnota, rok, tyden, roktyden, vek_txt,
-         idhod, stapro_kod, casref_do) %>% 
-  left_join(vek_do2020) %>% 
-  mutate(per_100k = hodnota/pocet_obyv * 1e5) %>% 
-  left_join(vek_2019) %>% 
-  mutate(normd = per_100k * obyv_2019 / 1e5)
+# ```{r time-adjusting-age}
+# vek_slct <- vek %>%  
+#   filter(vuzemi_cis == "97") %>% 
+#   filter(is.na(pohlavi_txt)) %>% 
+#   left_join(vek_ciselnik %>%
+#                     select(vek_kod = CHODNOTA, zkr = ZKRTEXT, 
+#                            txt = TEXT, matches("MIN|MAX"))) %>% 
+#   select(idhod, hodnota, vek_txt, zkr, txt, casref_do) %>% 
+#   left_join(vek_prevodnik) %>% 
+#   group_by(casref_do, vek_txt = vek_grp) %>% 
+#   summarise(pocet_obyv = sum(hodnota, na.rm = T)) %>% 
+#   mutate(rok = year(casref_do)) %>% 
+#   replace_na(list(vek_txt = "Total")) %>% 
+#   ungroup() %>% 
+#   select(-casref_do)
 
-zmr_normd_with_sum <- zmr_normd %>% 
-  bind_rows(zmr_normd %>% 
-              group_by(rok, tyden, roktyden, casref_do) %>% 
-              summarise(across(c(hodnota, obyv_2019, pocet_obyv, normd), sum)) %>% 
-              mutate(per_100k = hodnota/pocet_obyv * 1e5,
-                     vek_txt = "Total")) %>% 
-  mutate(day_sameyear = make_date(1970, month(casref_do), day(casref_do)))
-```
+# vek_2019 <- vek_slct %>% 
+#   filter(rok == 2019, !is.na(vek_txt)) %>% 
+#   rename(obyv_2019 = pocet_obyv) %>% 
+#   select(-rok)
 
-
-```{r time-adjusting-prep}
-zmr_ribbon_data <- zmr_normd_with_sum %>% 
-  mutate(is2020 = rok == 2020) %>% 
-  mutate(day_sameyear_floored = floor_date(day_sameyear, "weeks")) %>% 
-  group_by(is2020, vek_txt, tyden, day_sameyear_floored) %>% 
-  summarise(min = min(normd, na.rm = T), 
-            max = max(normd, na.rm = T), .groups = "drop") %>% 
-  mutate(vek_txt = fct_relevel(vek_txt, "Total") %>% 
-           fct_recode(`85+` = "85 a více"))
-```
+# vek_do2020 <- vek_slct %>% 
+#   bind_rows(vek_slct %>% 
+#               filter(rok == 2019) %>% 
+#               mutate(rok = 2020))
+# ```
 
 
-```{r mort-labels}
-lbs_grey <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
-               factor("Total"), as.Date("1970-02-01"), 2650, "range in \n2011-19",
-               )
-lbs_blue <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
-               factor("Total"), as.Date("1970-05-05"), 1900, "2020"
-               )
-```
+# ```{r time-adjusting-age-adjust}
+# zmr_normd <- zmr %>% 
+#   filter(vek_txt != "Total") %>% 
+#   select(hodnota, rok, tyden, roktyden, vek_txt,
+#          idhod, stapro_kod, casref_do) %>% 
+#   left_join(vek_do2020) %>% 
+#   mutate(per_100k = hodnota/pocet_obyv * 1e5) %>% 
+#   left_join(vek_2019) %>% 
+#   mutate(normd = per_100k * obyv_2019 / 1e5)
+
+# zmr_normd_with_sum <- zmr_normd %>% 
+#   bind_rows(zmr_normd %>% 
+#               group_by(rok, tyden, roktyden, casref_do) %>% 
+#               summarise(across(c(hodnota, obyv_2019, pocet_obyv, normd), sum)) %>% 
+#               mutate(per_100k = hodnota/pocet_obyv * 1e5,
+#                      vek_txt = "Total")) %>% 
+#   mutate(day_sameyear = make_date(1970, month(casref_do), day(casref_do)))
+# ```
 
 
-```{r age-adjusted-plot}
-ggplot(data = zmr_ribbon_data, mapping = aes(group = vek_txt)) +
-  geom_ribbon(data = zmr_ribbon_data %>% filter(!is2020),
-              alpha = 0.3,
-              aes(x = day_sameyear_floored, ymin = min, ymax = max)) +
-  geom_line(data = zmr_ribbon_data %>% filter(is2020),
-            colour = "darkblue",
-            aes(x = day_sameyear_floored, y = min)) +
-  geom_point(data = zmr_ribbon_data %>% filter(is2020),
-            aes(x = day_sameyear_floored, y = min), 
-            size = 1, colour = "darkblue", fill = "white", shape = 21) +
-  facet_wrap(~vek_txt, scales = "free_y") +
-  scale_x_date(date_breaks = "3 months",
-               date_labels = "%b", breaks = c(1,3,6, 9, 12)) +
-  theme_fira() +
-  theme(plot.margin = margin(0,5,10,0), 
-        legend.title = element_text(face='bold'), 
-        plot.title = element_text(hjust = 0), 
-        plot.subtitle = element_text(hjust=0),
-        plot.caption = element_text(hjust=0)) +
-  labs(x = NULL, y = NULL,
-       title = "Mortality (all-cause)",
-       subtitle = "Deaths per week, 2011-2020. Blue = 2020, grey = range in 2011-2019",
-       caption = str_glue("Based on CZSO dataset 130185 (deaths) and 130142 (age) | last checked {today_fmt} | Last data for {last_date_fmt}.")) +
-  geom_text(data = lbs_grey, aes(x = day_sameyear_floored, 
-                            y = min, label = txt), 
-            family = "Fira Sans",
-            fontface = "bold",
-            colour = "#454545",size = 3) +
-  geom_text(data = lbs_blue, aes(x = day_sameyear_floored, 
-                            y = min, label = txt), 
-            family = "Fira Sans",
-            fontface = "bold",
-            colour = "darkblue", size = 3)
-```
+# ```{r time-adjusting-prep}
+# zmr_ribbon_data <- zmr_normd_with_sum %>% 
+#   mutate(is2020 = rok == 2020) %>% 
+#   mutate(day_sameyear_floored = floor_date(day_sameyear, "weeks")) %>% 
+#   group_by(is2020, vek_txt, tyden, day_sameyear_floored) %>% 
+#   summarise(min = min(normd, na.rm = T), 
+#             max = max(normd, na.rm = T), .groups = "drop") %>% 
+#   mutate(vek_txt = fct_relevel(vek_txt, "Total") %>% 
+#            fct_recode(`85+` = "85 a více"))
+# ```
 
-<!-- ## Energy consumption 
+
+# ```{r mort-labels}
+# lbs_grey <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
+#                factor("Total"), as.Date("1970-02-01"), 2650, "range in \n2011-19",
+#                )
+# lbs_blue <- tribble(~vek_txt, ~day_sameyear_floored, ~min, ~txt,
+#                factor("Total"), as.Date("1970-05-05"), 1900, "2020"
+#                )
+# ```
+
+
+# ```{r age-adjusted-plot}
+# ggplot(data = zmr_ribbon_data, mapping = aes(group = vek_txt)) +
+#   geom_ribbon(data = zmr_ribbon_data %>% filter(!is2020),
+#               alpha = 0.3,
+#               aes(x = day_sameyear_floored, ymin = min, ymax = max)) +
+#   geom_line(data = zmr_ribbon_data %>% filter(is2020),
+#             colour = "darkblue",
+#             aes(x = day_sameyear_floored, y = min)) +
+#   geom_point(data = zmr_ribbon_data %>% filter(is2020),
+#             aes(x = day_sameyear_floored, y = min), 
+#             size = 1, colour = "darkblue", fill = "white", shape = 21) +
+#   facet_wrap(~vek_txt, scales = "free_y") +
+#   scale_x_date(date_breaks = "3 months",
+#                date_labels = "%b", breaks = c(1,3,6, 9, 12)) +
+#   theme_fira() +
+#   theme(plot.margin = margin(0,5,10,0), 
+#         legend.title = element_text(face='bold'), 
+#         plot.title = element_text(hjust = 0), 
+#         plot.subtitle = element_text(hjust=0),
+#         plot.caption = element_text(hjust=0)) +
+#   labs(x = NULL, y = NULL,
+#        title = "Mortality (all-cause)",
+#        subtitle = "Deaths per week, 2011-2020. Blue = 2020, grey = range in 2011-2019",
+#        caption = str_glue("Based on CZSO dataset 130185 (deaths) and 130142 (age) | last checked {today_fmt} | Last data for {last_date_fmt}.")) +
+#   geom_text(data = lbs_grey, aes(x = day_sameyear_floored, 
+#                             y = min, label = txt), 
+#             family = "Fira Sans",
+#             fontface = "bold",
+#             colour = "#454545",size = 3) +
+#   geom_text(data = lbs_blue, aes(x = day_sameyear_floored, 
+#                             y = min, label = txt), 
+#             family = "Fira Sans",
+#             fontface = "bold",
+#             colour = "darkblue", size = 3)
+# ```
+
+## Energy consumption 
 #
 ## PX index
 # -->

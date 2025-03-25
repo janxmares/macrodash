@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CompactData xmlns="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message" xmlns:eco="urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=IMF:ECOFIN_DSD:1.0:compact" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message SDMXMessage.xsd urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=IMF:ECOFIN_DSD:1.0:compact IMF_ECOFIN_DSD_Compact.xsd">
-<Header><ID>SDDSPlus_CZSO_PPI</ID><Test>false</Test><Prepared>2020-12-15T12:26:56</Prepared><Sender id="CZ1"><Name xml:lang="en">Czech Statistical Office</Name><Contact><Role xml:lang="en">Technical Implementation</Role><Name xml:lang="en">Martin Cerny</Name><Email>martin.cerny@czso.cz</Email></Contact><Contact><Role xml:lang="en">Contact Person for Data Queries</Role><Name xml:lang="en">Miloslav Beranek</Name><Email>miloslav.beranek@czso.cz</Email></Contact></Sender><Receiver id="IMF"></Receiver><DataSetID>CZSO_PPI</DataSetID><DataSetAction>Replace</DataSetAction></Header>
+<Header><ID>SDDSPlus_CZSO_PPI</ID><Test>false</Test><Prepared>2025-03-14T12:02:51</Prepared><Sender id="CZ1"><Name xml:lang="en">Czech Statistical Office</Name><Contact><Role xml:lang="en">Technical Implementation</Role><Name xml:lang="en">Martin Cerny</Name><Email>martin.cerny@czso.cz</Email></Contact><Contact><Role xml:lang="en">Contact Person for Data Queries</Role><Name xml:lang="en">Miloslav Beranek</Name><Email>miloslav.beranek@czso.cz</Email></Contact></Sender><Receiver id="IMF"></Receiver><DataSetID>CZSO_PPI</DataSetID><DataSetAction>Replace</DataSetAction></Header>
 <eco:DataSet>
 <eco:Series DATA_DOMAIN="PPI" REF_AREA="CZ" INDICATOR="PPPI_IX" COUNTERPART_AREA="_Z" FREQ="M" BASE_PER="2015" UNIT_MULT="0" TIME_FORMAT="P1M">
 <eco:Obs TIME_PERIOD="2010-01" OBS_VALUE="94.60" OBS_STATUS="A"/>
@@ -134,6 +134,57 @@
 <eco:Obs TIME_PERIOD="2020-09" OBS_VALUE="103.00" OBS_STATUS="A"/>
 <eco:Obs TIME_PERIOD="2020-10" OBS_VALUE="103.40" OBS_STATUS="A"/>
 <eco:Obs TIME_PERIOD="2020-11" OBS_VALUE="102.90" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2020-12" OBS_VALUE="103.10" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-01" OBS_VALUE="104.40" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-02" OBS_VALUE="105.10" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-03" OBS_VALUE="106.60" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-04" OBS_VALUE="107.40" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-05" OBS_VALUE="108.40" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-06" OBS_VALUE="109.30" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-07" OBS_VALUE="111.10" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-08" OBS_VALUE="112.40" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-09" OBS_VALUE="113.20" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-10" OBS_VALUE="115.40" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-11" OBS_VALUE="116.80" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2021-12" OBS_VALUE="116.70" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-01" OBS_VALUE="124.70" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-02" OBS_VALUE="127.50" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-03" OBS_VALUE="132.90" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-04" OBS_VALUE="136.00" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-05" OBS_VALUE="138.60" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-06" OBS_VALUE="140.50" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-07" OBS_VALUE="140.90" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-08" OBS_VALUE="140.70" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-09" OBS_VALUE="142.40" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-10" OBS_VALUE="143.20" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-11" OBS_VALUE="141.70" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2022-12" OBS_VALUE="140.20" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-01" OBS_VALUE="148.40" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-02" OBS_VALUE="147.90" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-03" OBS_VALUE="146.40" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-04" OBS_VALUE="144.70" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-05" OBS_VALUE="143.60" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-06" OBS_VALUE="143.10" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-07" OBS_VALUE="142.90" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-08" OBS_VALUE="143.20" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-09" OBS_VALUE="143.60" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-10" OBS_VALUE="143.50" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-11" OBS_VALUE="142.90" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2023-12" OBS_VALUE="142.20" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-01" OBS_VALUE="145.70" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-02" OBS_VALUE="146.50" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-03" OBS_VALUE="146.40" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-04" OBS_VALUE="146.70" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-05" OBS_VALUE="145.00" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-06" OBS_VALUE="144.60" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-07" OBS_VALUE="145.40" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-08" OBS_VALUE="144.80" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-09" OBS_VALUE="144.50" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-10" OBS_VALUE="144.70" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-11" OBS_VALUE="145.30" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2024-12" OBS_VALUE="146.20" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2025-01" OBS_VALUE="146.50" OBS_STATUS="A"/>
+<eco:Obs TIME_PERIOD="2025-02" OBS_VALUE="146.40" OBS_STATUS="A"/>
 </eco:Series>
 </eco:DataSet>
 </CompactData>
