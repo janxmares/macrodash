@@ -144,7 +144,7 @@ fig_urate <- ggplot(unemp_cz[variable == 'urate',], aes(x = time, y = value, col
                plot.title = element_text(hjust = 0), 
                plot.subtitle = element_text(hjust=0),
                plot.caption = element_text(hjust=0, margin = margin(15,0,-8,0))) + 
-               labs(title='Unemployment rate (%)', 
+               labs(title='Unemployment rate', subtitle = "%",
                     caption = paste0('https://ec.europa.eu/eurostat/web/products-datasets/product?code=ei_lmhr_m\n','last checked: ', format(date, '%d-%m-%Y')))
 
 # vacancies and unemployed
@@ -370,7 +370,7 @@ fig_infl <- ggplot(infl, aes(x = time, y = value, group = type, colour = type)) 
                plot.margin = margin(0,5,10,-5), legend.title = element_text(face='bold'), 
                plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), 
                plot.caption = element_text(hjust=0)) +
-               labs(title='Inflation', subtitle='Base = same period previous year', caption = paste0('https://vdb.czso.cz/pll/eweb/sdmx.getXML?d=CPI\n', 'https://www.cnb.cz/arad/, Data series SCPIMZM05YOYPECNA\n', 'last checked: ', format(date, '%d-%m-%Y')))
+               labs(title='Inflation', subtitle='%, base = same period previous year', caption = paste0('https://vdb.czso.cz/pll/eweb/sdmx.getXML?d=CPI\n', 'https://www.cnb.cz/arad/, Data series SCPIMZM05YOYPECNA\n', 'last checked: ', format(date, '%d-%m-%Y')))
 
 #
 #
@@ -398,7 +398,7 @@ fig_infl_ppi <- ggplot(ppi_data, aes(x = time, y = value)) + geom_line() + geom_
                theme(legend.position ='bottom', plot.margin = margin(0,5,10,-5), 
                legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), 
                plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
-               labs(title='PPI inflation', subtitle='Base = same period previous year', caption = paste0( 'https://vdb.czso.cz/pll/eweb/sdmx.getXML?d=PPI\n', 'last checked: ', format(date, '%d-%m-%Y')))
+               labs(title='PPI inflation', subtitle='%, base = same period previous year', caption = paste0( 'https://vdb.czso.cz/pll/eweb/sdmx.getXML?d=PPI\n', 'last checked: ', format(date, '%d-%m-%Y')))
 
 #
 #
@@ -501,7 +501,7 @@ fig_loan_growth <- ggplot(loans_dt_long[variable %in% c('nfi_loans_g','hh_loans_
                scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
                scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
                legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
-               labs(title='Loan growth (%)', subtitle='Base = same month previous year', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRSTOBUVMOBJ201CZK1, SMIRSTOBUVMOBJ301CZK1\n', 'last checked: ', format(date, '%d-%m-%Y')))
+               labs(title='Loan growth', subtitle='%, base = same month previous year', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRSTOBUVMOBJ201CZK1, SMIRSTOBUVMOBJ301CZK1\n', 'last checked: ', format(date, '%d-%m-%Y')))
 
 # plot npl data
 fig_npls <- ggplot(loans_dt_long[variable %in% c('npl_nfi','npl_hh'), ], aes(x = time, y = value, group = type, colour = type)) + geom_line() + geom_point() + xlab('') + ylab('') + 
@@ -528,25 +528,25 @@ fig_nfi_new_loans <- ggplot(loans_dt_long[variable %in% c('nfi_new_loans'), ], a
                scale_y_continuous(labels = scales::label_number(accuracy=1), limits = c(min(loans_dt_long[variable %in% c('nfi_new_loans'), ]$value)/10^9-3, max(loans_dt_long[variable %in% c('nfi_new_loans'), ]$value)/10^9+3)) + # facet_grid(type ~ .) +
                scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
                legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
-               labs(title='Non-financial institutions new loans (bn. CZK)', subtitle='', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRNOOBUVMOBJ237CZK013111\n', 'last checked: ', format(date, '%d-%m-%Y')))
+               labs(title='Non-financial institutions new loans', subtitle='bn. CZK', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRNOOBUVMOBJ237CZK013111\n', 'last checked: ', format(date, '%d-%m-%Y')))
 
 # consumer and housing loans growth y-o-y - households
 fig_hh_loan_growth_det <- ggplot(loans_dt_long[variable %in% c('hh_cons_loans_g','hh_hous_loans_g'), ], aes(x = time, y = value, group = variable, colour = variable)) + geom_line() + geom_point() + xlab('') + ylab('') + 
                scale_x_date(labels = scales::label_date_short(format = c("%Y", "%b", "", "")), date_breaks = "months", 
                expand = expansion(c(0.05, 0.05)), limits = c(min(loans_dt_long$time), this_month)) +
                scale_y_continuous(labels = scales::label_number(accuracy=0.1)) +
-               scale_colour_fira(name = element_text(""), labels = c('Consumer loans', 'Housing loans')) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+               scale_colour_fira(name = element_text(""), labels = c('Consumer', 'Housing')) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
                legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
-               labs(title='Households loan growth (%)', subtitle='Base = same month previous year', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRSTOBUVMOBJ201CZK1, SMIRSTOBUVMOBJ301CZK1\n', 'last checked: ', format(date, '%d-%m-%Y')))
+               labs(title='Loan growth (households)', subtitle = '%, base = same month previous year', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRSTOBUVMOBJ201CZK1, SMIRSTOBUVMOBJ301CZK1\n', 'last checked: ', format(date, '%d-%m-%Y')))
 
 # new consumer and housing loans - households
 fig_hh_new_loans_det <- ggplot(loans_dt_long[variable %in% c('hh_new_cons_loans','hh_new_hous_loans'), ], aes(x = time, y = value/10^9, group = variable, colour = variable)) + geom_line() + geom_point() + xlab('') + ylab('') + 
                scale_x_date(labels = scales::label_date_short(format = c("%Y", "%b", "", "")), date_breaks = "months", 
                expand = expansion(c(0.05, 0.05)), limits = c(min(loans_dt_long$time), this_month)) +
                scale_y_continuous(labels = scales::label_number(accuracy=1)) +
-               scale_colour_fira(name = element_text(""), labels = c('Consumer loans', 'Housing loans')) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
+               scale_colour_fira(name = element_text(""), labels = c('Consumer', 'Housing')) + theme_fira() + theme(legend.margin=margin(0,0,0,0),
                legend.box.margin=margin(-10,-10,-10,-10), plot.margin = margin(0,5,10,-5), legend.position ='bottom', legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), plot.caption = element_text(hjust=0)) +
-               labs(title='Households new loans (bn. CZK)', subtitle='', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRNOOBUVMOBJ304CZK013111, SMIRNOOBUVMOBJ305CZK013111\n', 'last checked: ', format(date, '%d-%m-%Y')))
+               labs(title='New loans (households)', subtitle='bn. CZK', caption = paste0('https://www.cnb.cz/arad/\ndata series: SMIRNOOBUVMOBJ304CZK013111, SMIRNOOBUVMOBJ305CZK013111\n', 'last checked: ', format(date, '%d-%m-%Y')))
 
 #
 #
