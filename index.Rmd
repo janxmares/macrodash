@@ -370,7 +370,7 @@ fig_infl <- ggplot(infl, aes(x = time, y = value, group = type, colour = type)) 
                plot.margin = margin(0,5,10,-5), legend.title = element_text(face='bold'), 
                plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0), 
                plot.caption = element_text(hjust=0)) +
-               labs(title='Inflation', subtitle='Base = same period previous year', caption = paste0('https://vdb.czso.cz/pll/eweb/sdmx.getXML?d=CPI\n', 'https://www.cnb.cz/arad/, Data series SCPIMZM05YOYPECNA\n', ', last checked: ', format(date, '%d-%m-%Y')))
+               labs(title='Inflation', subtitle='Base = same period previous year', caption = paste0('https://vdb.czso.cz/pll/eweb/sdmx.getXML?d=CPI\n', 'https://www.cnb.cz/arad/, Data series SCPIMZM05YOYPECNA\n', 'last checked: ', format(date, '%d-%m-%Y')))
 
 #
 #
@@ -632,7 +632,6 @@ This dashboard aims to provide basic macroeconomic data for the Czech Republic. 
 fig_sales_serv + geom_line() + geom_point() + xlab('') + ylab('') + 
                scale_x_date(labels = scales::label_date_short(format = c('%Y','%b','','')), date_breaks = "months", 
                expand = expansion(c(0.05, 0.05)), limits = c(min(serv_current$time), this_month)) +
-               scale_y_continuous(breaks = scales::breaks_width(20))+
                scale_colour_fira(name = element_text("")) + theme_fira() + theme(legend.position = "bottom", plot.margin = margin(0,5,10,-5), legend.title = element_text(face='bold'), plot.title = element_text(hjust = 0), plot.subtitle = element_text(hjust=0),
                                                                                  plot.caption = element_text(hjust=0)) +
                facet_wrap(~plot) + labs(title='Sales in services', subtitle='Monthly index, base = same period previous year', caption = paste0('https://vdb.czso.cz/vdbvo2/faces/index.jsf?page=vystup-objekt-parametry&pvo=SLU03-A&sp=A&skupId=1877&pvokc=&katalog=32025&z=T\n','last checked: ', format(date, '%d-%m-%Y')))
