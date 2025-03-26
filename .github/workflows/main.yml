@@ -10,8 +10,9 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup R
+      - name: Setup R and Renv
         uses: r-lib/actions/setup-r@v2
+        uses: r-lib/actions/setup-renv@v2
 
       - name: Install XQuartz on MacOS
         if: runner.os == 'macOS'
@@ -21,21 +22,6 @@ jobs:
         uses: r-lib/actions/setup-pandoc@v2
         with:
           pandoc-version: '3.1.8' # Updated to a more recent version of pandoc.
-
-      - name: Cache Renv packages
-        uses: actions/cache@v3
-        with:
-          path: $HOME/.local/share/renv
-          key: r-${{ hashFiles('renv.lock') }}
-          restore-keys: r-
-
-      - name: Install packages
-        env: 
-          GITHUB_PAT: ${{ secrets.GH_PAT_MD }}
-        run: |
-          R -e 'install.packages("renv")'
-          R -e 'renv::restore()'
-
       - name: Render Site
         env:
           ARAD_API_TOKEN: ${{ secrets.ARAD_API_TOKEN }}
