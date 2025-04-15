@@ -5,7 +5,7 @@ name: Render and Deploy RMarkdown Website
     - cron:  '15 9 * * 1-5'
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
