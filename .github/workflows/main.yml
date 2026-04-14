@@ -6,9 +6,11 @@ name: Render and Deploy RMarkdown Website
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
