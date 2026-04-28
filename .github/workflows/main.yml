@@ -14,8 +14,11 @@ jobs:
 
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
-      
-      - name: Setup renv  
+        with:
+          r-version: '4.6'
+          use-public-rspm: true
+
+      - name: Setup renv
         uses: r-lib/actions/setup-renv@v2
 
       - name: Install XQuartz on MacOS
